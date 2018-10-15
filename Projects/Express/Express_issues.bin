@@ -1,0 +1,1037 @@
+
+	expressjsexpress��2015-01-12T15:48:31Z"2015-01-13T00:48:50Z*�// for options requests, respond with a default if nothing else responds
+  if (req.method === 'OPTIONS') {
+    done = wrap(done, function(old, err) {
+      if (err || options.length === 0) return old(err);
+
+      var body = options.join(',');
+      return res.set('Allow', body).send(body);
+    });
+  }
+this is due to http.ServerResponse not having a set method.  i believe the intent here is to call http.ServerResponse.setHeader()2G
+(dab9222942cb9f7c3ff17abad4e0f6137c9e2cfc2015-01-13T00:00:49Z67512:�
+2015-01-12T15:57:40Z�Express code is not made for use outside Express. Express adds a set method. If you are looking to use the router without an Express server, check out the "router" module on npm, which is the Express 4 router made to work outside Express.:�
+2015-01-12T16:20:45Z�i am not using it outside of express.  perhaps there is some path by which that set function does not get added?  fwiw, that function appears to be the ONLY place in all of router/index.js that interacts with the res object all.  someone attempted to penetrate our site over the weekend and they were able to crash our servers.  in each case, the uncaught exception came from that function:
+Sat Jan 10 2015 02:52:28 GMT-0500 (EST) - error: TypeError: Object #<ServerResponse> has no method 'set'
+    at Object.<anonymous> (/usr/hs/release/amber/amber/node_modules/express-ive/node_modules/express/lib/router/index.js:157:18)
+    at Object.proxy (/usr/hs/release/amber/amber/node_modules/express-ive/node_modules/express/lib/router/index.js:574:8)
+    at Object.immediate._onImmediate (timers.js:348:16)
+    at processImmediate [as _immediateCallback] (timers.js:330:15)
+unfortunately, the crash occurs before writing the request information to our logs so i don't have a lot of details to go on.  i am attempting to work back up through the load balancer and fw logs to see if i can find the request and replicate.:�
+2015-01-12T16:34:44Z�Gotcha. Unfortunately I cannot remove the set for backwards compatibility, otherwise I would have long ago (it'll be removed in 5.0). If you can provide what version of node.js, what version of express, and some code to reproduce, that would be great. I've never seen or had a report an error in that code path before. If there is a bug, the bug is that the router is not getting an Express "res", but rather a plain node.js res.:�
+2015-01-12T19:28:55Z�unfortunately, our load balancer logs had already rolled by the time i got to them, so i cannot get any additional details about what route causes the error.  node v0.10.26 express 4.10.4
+fwiw, a simple OPTIONS request from cURL seems just fine, so there is certainly some other combination of things that get to this state:o
+2015-01-12T19:50:11ZWRight. Let me know what you find, but so far I haven't been able to reproduce anything.:�
+2015-01-12T19:55:12Z�At the very least, I'm going to wrap that handler in a try-catch so that if there is an error, you'll get back a 500 instead of an uncaught exception.:�
+2015-01-13T00:48:37Z�I cannot speak as to why there is no set method, especially without the code from your environment (I strongly suspect there is either a code path that is sending a request only to the router without going through app or something is delete res.set or similar), but I have a fix coming that will keep it from crashing the web server.:+
+2015-01-13T18:47:23ZPublished as 4.10.8��2015-02-28T19:23:43Z"2015-03-02T01:50:12Z*Fix for #25692H
+(20aa12616abac9466d590c9fb333fd8a0408eedc2015-03-01T03:29:43Z254583:�
+2015-02-28T19:29:26Z�Thank you so much for finding this :) This is two very long-standing, esoteric trust proxy bugs close together! Let me know if there is anything I can do for you 🍻:U
+2015-02-28T19:32:09Z=My pleasure. Thanks for all the hard work on a great project.:^
+2015-02-28T19:32:54ZFAnd I plan to release this to the 3.x and 4.x lines today (U.S. time).:+
+2015-03-01T05:23:56ZPublished as 3.20.1��2015-01-09T23:42:24Z"2015-06-21T06:30:24Z*�I am using express (4.10.6) with a route that has a optional term.
+app.get("/truc(muche)?/bidule/:machin/:chose",my_function);
+
+The route work great as /truc/bidule/head/foot and /trucmuche/bidule/head/foot is well routed to my_function.
+But there's a problem because when entering the function,the req.params is :
+for /truc :      { '0': 'foot', machin: undefined, chose: 'head' }
+for /trucmuche : { '0': 'foot', machin: 'muche', chose: 'head' }
+
+instead of what seems to be expected :
+for /truc :      { '0': undefined, machin: 'head', chose: 'foot' }
+for /trucmuche : { '0': 'muche', machin: 'head', chose: 'foot' }
+
+Strange !
+Thanks for your help.
+Doom.2I
+(60e2008dee01a90551623371da939de41c05422e2015-06-19T15:59:33Z1088987:�
+2015-01-10T00:08:19Z�It's unfortunate it's a bug in the old version of path-to-regexp we use, and since it's so old, it may not get fixed. In the meantime, you can always use the path /:first(truc(muche)?)/bidule/:machin/:chose (i.e. give the first path segment a name and the regexp to metch for it).:�
+2015-01-10T00:12:36Z�Basically the limitation of the path-to-regexp we are using is that you cannot have your own capture groups before named parameters in the path.:�
+2015-06-19T07:12:45Z�Good news! This is now fixed in path-to-regexp 0.1.5, which is Express 4.x compatible! Bad news is we cannot yet moved to 0.1.5 until the following bug is fixed: pillarjs/path-to-regexp#55��2014-06-11T23:32:54Z"2014-06-12T00:15:29Z*�Using express 4.x, app.param does not seem to even execute for POST requests.
+Sample code:
+var express = require('express');
+var app = express();
+app.param('test', function(req, res, next, val) {
+    req.params.test = 'b';
+    next();
+});
+
+app.get('/:test', function(req, res) { res.send(req.params.test + '\n'); });
+app.post('/:test', function(req, res) { res.send(req.params.test + '\n'); });
+
+app.listen(4000);
+Expected result:
+$ curl http://localhost:4000/a
+b
+$ curl -X POST http://localhost:4000/a
+b
+
+Actual result:
+$ curl http://localhost:4000/a
+b
+$ curl -X POST http://localhost:4000/a
+a2G
+(6775658ed5cbac13f2d24c89e23ed967ad6a66ba2014-06-12T00:15:09Z67512:�
+2014-06-11T23:38:21Z�It's not particularly a bug; the problem is that you are modifying req.params.test and it gets overwritten when it matches a second time on the second route. If you swap the two, you'll see then it doesn't "work" for GET requests.:C
+2014-06-11T23:41:39Z+Try storing your value in req.test instead.:�
+2014-06-11T23:44:59Z�As far as I can tell, we have no documentation that says you should be able to modify the values in req.params and expect them to persist; the docs on app.param() specifically talk about storing an object directly on req, rather than modifying req.params.:W
+2014-06-11T23:51:19Z?I'm still fixing the issue, though, in case you were wondering.:�
+2014-06-12T00:00:08Z�Hahah, that's good to know, thanks.
+The second example does seem to indicate that you can modify req.params:
+app.param(function(name, fn) {
+... snip ...
+  req.params[name] = captures;:�
+2014-06-12T00:01:50Z�The second example does seem to indicate that you can modify req.params
+
+Oh snap, I missed that one! Thanks :) The root issue was there was no test for this situation in the test suite ;):{
+2014-06-12T00:15:49ZcYou issue should be fixed on master now if you feel like testing :) npm install visionmedia/express:&
+2014-06-12T00:24:13Zsweet! thanks!:�
+2014-06-12T00:25:34Z�It is anticipated to be released as a 4.4.3 sometime tonight, there is one more patch I need to work up from the send module first.�8�2015-02-28T17:03:01Z"2015-03-02T01:50:12Z*�I'm pretty certain that the .set('trust proxy', 2) style will not work as documented. trust(address, hops) is expected by https://github.com/strongloop/express/blob/master/lib/utils.js#L249
+Most likely this should be something like if (!trust(this.connection.remoteAddress, proxyaddr.all(this, trust).length))
+566720b#diff-96d9811cb2296e877edf463c6cfc57bdR3532H
+(20aa12616abac9466d590c9fb333fd8a0408eedc2015-03-01T03:29:43Z254583:[
+2015-02-28T17:34:53ZCPlease provide a test showing I not working, as I cannot replicate.:�
+2015-02-28T17:37:20Z�If you need, please tweak test in https://github.com/strongloop/express/blob/master/test/req.ip.js which is already testing the hop count feature with success.:�
+
+2015-02-28T18:01:06Z�
+Hi! Sorry for the hasty response early, I was on a phone. Now that I have fully read your report I understand the issue here: you misunderstand the feature. This implements an industry-standard way to determine the public IP on a HTTP connections that has traveled through proxies.
+The "hop count" feature is the worst way to establish trust of all, but provided because there are times where you just don't know the IP addresses of your proxy servers and you know your site is only accessible by those proxies and no other way.
+The way "hop count" works is that you are declaring the number of proxy servers in front of your server that you trust, as in, it pulls the IP address that the nth proxy server reported as the address that connected to it Your code example is different: you are trying to assert that there are exactly n proxy servers in the path between you and your client. This won't even work as soon as you have a visitor using their own proxy, raising the proxy count.
+Basically, the implement within Express here is 100% correct according to industry practices of how trusting proxies for X-Forwarded-For works. If you need that weird implementation you posted above for some reason, the trust proxy setting accepts a function, so you can always implement it yourself :)!:�
+2015-02-28T18:03:05Z�And if you really are having an issue and your guess of what the code should be was not actually what you wanted, please provide some example code to help me reproduce the issue, and remember, if you need help making code to reproduce, just modify a test in that test file I linked to above :):�
+2015-02-28T18:17:04Z�set('trust proxy', 3) doesn't work as documented.
+
+From http://expressjs.com/4x/api.html#trust.proxy.options.table
+
+Number
+Trust the nth hop from the front-facing proxy server as the client.
+
+So this is the documentation we have for it, which mates what I expect (I was checking to see if we had bad documentation or something). If you had the following connection:
+S --> P1 --> P2 --> P3 --> C
+
+Then a trusted hop count of 2 would return the IP address that P2 way (which would be P3's IP address). Each P in the diagram is a "hop" (as standard lingo in networking). This means that Express will return the IP address that P2 claims to have seen (which could very well be spoofed), but since we trust P2, then we trust it is not lying to us and use the IP address P3 as the first-untrusted IP, which is the client for logging and any auditing purposes.
+
+Most likely this should be something like if (!trust(this.connection.remoteAddress, proxyaddr.all(this, trust).length))
+
+This would result in a very different behavior, in that if you gave it 2, you would end up with the IP of P1 in the diagram above, since you just said you didn't trust anything anymore, since there were three proxies in the connection. I've never heard of any such industry trust like this, but if there are articles, RFCs, or something else that explains this kind of trust, I can look into it.
+If you are saying that all the stuff I described as the actual, correct behavior, is what isn't working, please, please, send some way for me to reproduce, as I have not been able to reproduce our behavior not working.:�
+2015-02-28T18:17:39Z�Here are the missing tests for the hops arguments on trust proxies for req.protocol
+serby@e2a3112
+Currently failing.
+proxy-addr is correctly parameterising the trust function with the length of hops
+https://github.com/jshttp/proxy-addr/blob/master/index.js#L63
+It is only req.protocol and req.secure that are not correctly sending the hop count to the compiled trust function.:�
+2015-02-28T18:20:32Z�Holy shit, I'm sooo sorry. I didn't see any mention of req.protocol or req.secure being the issue in your post, and the "what it should be" totally threw me off. Because of the way those headers are constructed, it should actually be just trust(req.connection.remoteAddress, 1).:t
+2015-02-28T18:24:16Z\Totally my bad. I wrong assumed it was more widespread than just req.protocol and req.secure:[
+2015-02-28T18:25:43ZCI've got the additional tests for req.secure and a fix about to PR.:�
+2015-02-28T18:29:14Z�Ok, thank you :) If you feel like it, please check anywhere we are calling that trust function directly. And remember: The number argument for those cases should simply be "1" since those headers are not a list and you don't want your site to break just because you have a customer that decided to use a proxy and added another hop to their connection.:�
+2015-02-28T18:49:27Z�Do you agree that this test demonstrates expected behaviour?
+https://github.com/serby/express/blob/e2a31120b0b52a5ddad52f81f05293dafe716ae2/test/req.protocol.js#L112-L141:�
+2015-02-28T18:50:16Z�Just https://github.com/serby/express/blob/e2a31120b0b52a5ddad52f81f05293dafe716ae2/test/req.protocol.js#L112 should still be returning https, not http.:�
+2015-02-28T19:09:28Z�Yeah, I think your right.
+There is a question of security. SSL connections should not be proxied beyond trusted proxies. An unexpected proxy in front of a trusted SSL proxy would most likely be a man in the middle attack. But I don't think that ignoring X-Forwarded-Proto is any sort of security measure, so it's probably best to always correctly report initial protocol regardless of the number of hops. Which I think is what you are suggesting.
+It might be worth adding to the documentation that the hops interface set('trust proxies', n) will always report the initial protocol regardless of whether the initial proxy is within the trusted hops count.:�
+2015-02-28T19:12:17Z�It might be worth adding to the documentation that the hops interface set('trust proxies', n) will always report the initial protocol regardless of whether the initial proxy is within the trusted hops count.
+
+This is not true; the whole point of trust proxies is because you trust that the ones you control are property setup to overwrite X-Forwarded-Proto with the correct value. This is how this ancient X-Forwareded-Proto header works: at the edge of your controlled network, you overwrite it to the one you trust.:�
+2015-02-28T19:14:16Z�And also, a MITM proxy is unlikely to actually set any proxy headers, so you wouldn't even know of it's existence within the X-Forwarded-For header; as far as your edge network would know, that MITM server is the client.��2014-10-18T03:23:26Z"2014-10-18T03:38:58Z*mfixing bug with redirects where the url was not being put in response body when 2 arguments were being passed2@
+(6f0302fb78f636da320d3ffd329c18fed36aeda92014-10-18T04:00:59Z:B
+2014-10-18T04:05:25Z*@praf this fix has been published in 4.9.8��2014-07-10T05:48:14Z"2014-07-12T05:32:36Z*vFor the edge condition example see the added test case.
+app.get('/', function (req, res) {
+   res.send(200, 0.123);
+})2I
+(544c6665f54b1ebdbc54769ba78721c4e13acdf72014-07-11T05:19:57Z1415488:�
+2014-07-10T05:56:55Z�Good catch, though I think it should be treated as JSON, maybe? This is how res.json would work. How did you run into this case, may I ask?:�
+2014-07-10T06:05:54Z�@dougwilson Well, the result of JSON.stringify(number) and number.toString() are identically the same.
+My program may be something look like this:
+var cached = any;
+
+app.get('/', function (req, res) {
+    if (cached)
+        res.send(200, cached);
+    else
+        res.send(404, 'sorry');
+});
+When someone cached a number, the bug comes out.:�
+2014-07-10T06:07:26Z�Well, the result of JSON.stringify(number) and number.toString() are identically the same.
+
+They are different, though. JSON number:
+Content-Type: application/json
+Content-Length: 1
+
+1
+
+String:
+Content-Type: text/html; charset=utf-8
+Content-Lentgh: 1
+
+1
+
+The header is different ;):�
+2014-07-10T06:12:26Z�@dougwilson No, I test my result, the http response for number.toString() is
+Content-Type: text/html; charset=utf-8
+Content-Lentgh: 1
+
+1:�
+2014-07-10T06:14:17Z�@dougwilson If you don't believe it. You can checkout my branch and test the code in browser.
+var app = require('express')();
+
+app.get('/', function (req, res) {
+    res.send(200, 123);
+})
+
+app.listen(8013);:�
+2014-07-10T06:16:55Z�No, I test my result, the http response for number.toString()
+
+I know what you sent. I'm asking if we think it should actually be sending JSON instead. Basically saying that if you give res.send(status, val), if val is not a string or Buffer, it should send a JSON, as a rule.:�
+2014-07-10T06:24:43Z�Got that. But the edge condition is somehow hard for me to refactor the code logic into case 'object'.
+For now I can't find an elegant way to express code to achieve it.
+What about this?
+  // when sending statusCode with a number.
+  if ('number' == typeof body && 2 == arguments.length)
+    body = body.toString();
+
+  switch (typeof body) {
+    // response status
+    case 'number':
+      this.get('Content-Type') || this.type('txt');
+      this.statusCode = body;
+      body = http.STATUS_CODES[body];
+      break;
+    // string defaulting to html
+    case 'string':
+      if (!this.get('Content-Type')) this.type('html');
+      break;
+    case 'boolean':
+    case 'object':
+      if (null == body) {
+        body = '';
+      } else if (Buffer.isBuffer(body)) {
+        this.get('Content-Type') || this.type('bin');
+      } else {
+        return this.json(body);
+      }
+      break;
+  }:�
+2014-07-10T06:26:17Z�For now I can't find an elegant way to express code to achieve it.
+
+I already have the change made for you :) I am just trying to discuss which way we want to go, haha. The change would still have you as the author.:S
+2014-07-10T06:30:10Z;Right, @ysmood that was pretty much how I moved it: 0542aa5:�
+2014-07-11T04:43:44Z�Ok, for 5.x we really need to drop this braindead api. If you want to set the status use res.status(). send should just send what you give it.:�
+2014-07-11T04:47:18Z�send should just send what you give it.
+
+Yes, I am 👍 on this; too much crazy going on with these, i.m.o. I may wait until 4.7 to add deprecation messages, though, instead of in 4.6.:�
+2014-07-11T04:48:29Z�Add them now!! This is terrible API and needs to be killed. It was totally oversight on my part for not doing it for 4.x I think this is one of the top issues raised now.:�
+2014-07-11T04:50:38Z�@defunctzombie haha, I can add then in 4.6, of course :) I opened a discussion at #2227 to make sure we're not making a rash decision first :)��2014-10-18T03:15:25Z"2014-10-18T03:16:54Z*\Fixing a bug where url was not being put in response body when 2 arguments were being passed2@
+(6f0302fb78f636da320d3ffd329c18fed36aeda92014-10-18T04:00:59Z:t
+2014-10-18T03:19:56Z\Thank you :) This will probably just get rolled up into 4.10 since it's so close to release.:I
+2014-10-18T03:20:41Z1Hm. Why did you close this? Is this not an issue?:}
+2014-10-18T03:26:26ZeSorry, opened another one. I didn't think the test name was descriptive enough. It is an issue.
+#2404:�
+2014-10-18T03:27:20Z}Didn't know how to update code on an existing pull request. Therefore, submitted another one with a descriptive test name. :):�
+2014-10-18T03:27:51ZjGotcha. I would have probably changed your test anyway, haha :) I don't require perfection to accept a PR.��2014-05-29T03:56:15Z"2014-05-29T04:26:32Z*�I'm a very new Node.js and Express user (started using them this month) but I think if a parameter is rejected, like for example if id is not a number, all routes expecting that parameter should be avoided, but that doesn't happen in 4.3.1. If you have a .param() callback rejecting/skipping a value and there are more than one route expecting the variable related and matching the route pattern, the second route will be called instead of also being skipped like the first.
+The test code below stopped working at 4.3.1 version. Instead of getting get.new we now get get.id. I tried to find the root cause of this issue but unfortunately I started using Express and Node.js last month and I do not know its internals enough to fix the problem. Anyway, it seems that it is somehow related to the commits 31b2e2d and its reversion 7f04916.
+Should I make a pull request to ask for this test to be merged even known that it still fails? Could someone please take a look at it?
+diff --git a/test/app.param.js b/test/app.param.js
+index 923cbc3..15abaee 100644
+--- a/test/app.param.js
++++ b/test/app.param.js
+@@ -194,5 +194,30 @@ describe('app', function(){
+       .get('/user/123')
+       .expect('name', done);
+     })
++
++    it('should defer all the param routes', function(done){
++      var app = express();
++
++      app.param('id', function(req, res, next, val){
++        if (val == 'new') return next('route');
++        return next();
++      });
++
++      app.all('/user/:id', function(req, res){
++        res.send('all.id');
++      });
++
++      app.get('/user/:id', function(req, res){
++        res.send('get.id');
++      });
++
++      app.get('/user/new', function(req, res){
++        res.send('get.new');
++      });
++
++      request(app)
++      .get('/user/new')
++      .expect('get.new', done);
++    })
+   })
+ })2G
+(fb2d9180569ae5bae5ba68aa79c95ed825af38992014-05-29T04:26:05Z67512:�
+2014-05-29T04:02:20Z�Thank you for the detailed report! It looks like it stopped working because of commit 98d17e2
+I will have a fix for the rejection via. next('route') ASAP :):>
+2014-05-29T04:05:17Z&Also, thanks for the failing test 🍻:�
+2014-05-29T04:09:32Z�P.S., though this is a bug, I just wanted to point out that the code in the test isn't the best way to implemented a /user/new route ;) You could just put the literal new route above the ones with :id to get that behavior.:d
+2014-05-29T04:11:36ZLYeah, I realized that but I didn't find a better way to make a simpler test.:�
+2014-05-29T04:13:26ZmThat's fine :) I just wanted to point that out anyway ;) The test is valid, though, so it's fine as a test :D:�
+2014-05-29T04:27:41Z�@swrh thanks to your detailed bug report and failing test case, this bug has been fixed quickly 👏 feel free to let me know if the fix still does not meet your expectations.:C
+2014-05-29T04:42:33Z+@dougwilson It worked like a charm. Thanks!��2016-06-01T07:04:39Z"2016-06-16T17:06:34Z*+http://stackoverflow.com/a/37543704/47718542H
+(2e1284beb6210444932d050b9d31d3908afb75912016-06-01T22:47:03Z263117:�
+2016-06-01T07:18:28Z�Thanks, @huaoguo! Looks like we already account for this in the 5.0 alpha, but we'll get this fix into the 4.x line as part of the upcoming 4.14 release.:)
+2016-06-01T08:53:49Z@dougwilson cool!:�
+2016-06-01T18:55:38Z�This package correctly covers that case, maybe we should pull it in? It seems like it was originally based on code from this very repo :)
+https://www.npmjs.com/package/is-absolute:�
+2016-06-01T19:06:32Z�Hi @LinusU, the issue with that package (and others like it that extract from the newer Node.js API) is that they export platform-specific functionality, which differs from what is in Express.js 4.x. For example, Express.js 4.x will say a Windows absolute path is absolute even when Express.js is running on linux, unlike that package. We have already moved to the official pollyfill in the Express.js 5.x alphas.:J
+2016-06-01T23:25:03Z2@dougwilson Awesome 🙌 sorry for missing that...�	�2015-05-29T23:27:46Z"2015-06-21T06:30:24Z*�res.format crashes when provided only the default parameter.
+Code:
+  res.format({
+    'default': function () {
+      res.status(statusCode).send({ error: error });
+    }
+  });
+
+Stack:
+TypeError: Object application/json has no method 'replace'
+    at Mime.lookup (/expressApp/node_modules/express/node_modules/send/node_modules/mime/mime.js:70:18)
+    at exports.normalizeType (/expressApp/node_modules/express/lib/utils.js:103:21)
+    at ServerResponse.res.format (/expressApp/node_modules/express/lib/response.js:613:30)
+    at /expressApp/index.js:61:7
+
+curl request
+curl -H 'Content-Type: application/json' -H 'Accept: application/json' -v htt p://127.0.0.1:5555/
+After brief debugging response.js > res.format function I found that req.accepts() short circuits when !keys.length (which is zero, since we deleted obj.default) and returns internal function this.negotiator.mediaTypes(), which is in array type. Then it calls mime.lookup(type) on utils.js > exports.normalizeType with the array which we previously got from req.accepts, and crashes.2@
+(24d1c98c0ae4cc5dfd79bfff5d536a95034f75692015-06-19T05:08:34Z:#
+2015-05-29T23:32:11ZGreat find!��2014-05-08T19:17:57Z"2014-05-08T20:46:48Z*�The following will cause an error:
+// curl http://localhost:3000/ping?callback[a]=something
+app.get('/ping',function(req,res){
+  res.jsonp('pong');
+});
+Thank you, query parsing with fancy object interpretation :)2G
+(d58ca520c8d30f65bb506dbd84009c405bd444e42014-05-08T19:42:19Z67512��2014-10-10T19:23:22Z"2014-10-10T22:32:10Z*�I am using express.Router to build routes using Router.param() to preprocess a parameter and Router.get() to set the route path.
+When an array of paths is provided to the Router.get() call, all route paths exist and are executed, but only the last provided path in the array has the parameter appearing as expected.  For any other paths in the array, the parameter does not exist and Router.param() is not called.
+Per API doc for app.use(), an array of paths is acceptable, and the routes clearly exist and get called at every path provided - however the parameter is never extracted except in the last provided path.
+To recreate, I created a base app using command line "express" tool. In the newly created routes/user.js, I added:
+router.param('user', function(req, res, next, user_id) {
+    res.write("PARAM CHECK look up user " + user_id + "\n");
+    req.query.user_id = user_id;
+    next();
+});
+
+router.get('/:user', function(req, res, next) {
+    res.end("GET USER " + req.query.user_id + "\n");
+});
+
+router.get('/:user/happy', function(req, res, next) {
+    res.end("HAPPY USER " + req.query.user_id + "\n");
+});
+
+router.get(['/:user/sad', '/:user/glum', '/:user/morose'], function(req, res, next) {
+    res.end("SAD USER " + req.query.user_id + "\n");
+});
+
+Results from the routes:
+curl http://localhost:3000/users/me/happy
+PARAM CHECK look up user me
+HAPPY USER me
+
+curl http://localhost:3000/users/me/morose
+PARAM CHECK look up user me
+SAD USER me
+
+curl http://localhost:3000/users/me/glum
+SAD USER undefined
+
+curl http://localhost:3000/users/me/sad
+SAD USER undefined
+
+Dumping req.params to the console on the failed calls returning "undefined", I see:
+{ user: undefined }.   The parameter was recognized as existing in the route path, but was never properly extracted within the routing mechanism.2G
+(94f10c26cb6f84960bf2d61cecaf0d64fa5c03da2014-10-10T22:31:09Z67512:�
+2014-10-10T20:25:52Z�Workaround is to forEach over array to assign each path individually, or avoid array altogether in how route paths are tracked internally in your code.:�
+2014-10-10T22:32:24Z�Thank you @mujimu for your report! I really appreciate it. master has just been patched and will be in the next patch release of express 4 :):*
+2014-10-10T22:43:04ZPublished as 4.9.7:I
+2014-10-16T01:17:24Z1thanks @dougwilson for the quick response and fix��2014-05-07T19:57:59Z"2014-05-08T20:46:48Z*�When access a web site using an IPv6 literal address (like http://[::1]:3000/) the value of req.host will be garbled (specifically, [).2G
+(c99fa6a19268e87b300c1775f90814a23095f1992014-05-07T20:08:08Z67512�$
+�2016-07-13T10:41:52Z"2017-03-01T23:14:09Z*�
+My server is scanned by the security team of my company to detect secutity flaws, and I've got a strange error in my  console:
+Here is the logged stack:
+
+GET /mainui/ 404 2.194 ms - 9
+TypeError: res.set is not a function
+at sendOptionsResponse (c:\git\WebSite\node_modules\express\lib\router\index.js:626:9)
+at c:\git\WebSite\node_modules\express\lib\router\index.js:168:7
+at proxy (c:\git\WebSite\node_modules\express\lib\router\index.js:643:8)
+at next (c:\git\WebSite\node_modules\express\lib\router\index.js:256:14)
+at trim_prefix (c:\git\WebSite\node_modules\express\lib\router\index.js:286:45)
+at c:\git\WebSite\node_modules\express\lib\router\index.js:280:7
+at Function.process_params (c:\git\WebSite\node_modules\express\lib\router\index.js:330:12)
+at next (c:\git\WebSite\node_modules\express\lib\router\index.js:271:10)
+at trim_prefix (c:\git\WebSite\node_modules\express\lib\router\index.js:286:45)
+at c:\git\WebSite\node_modules\express\lib\router\index.js:280:7
+GET / 200 2.574 ms - 21440
+
+I'm using express 4.14.0
+Is it normal that such a function is not defined?
+Code around line 626 is:
+// send an OPTIONS response
+function sendOptionsResponse(res, options, next) {
+  try {
+    var body = options.join(',');
+    res.set('Allow', body);
+    res.send(body);
+  } catch (err) {
+    next(err);
+  }
+}2G
+(51f52901eb1f00571e18d404e10b27310215234c2017-02-26T19:59:47Z67512:�
+2016-07-16T02:16:44ZxCan you provide more context or a sample reproduction? Are you sure that it's a response argument in the first position?:�
+2016-07-20T14:10:40Z�I cannot provide a sample reproduction, for I don't know what the IDS/IPS is sending to my site.
+So I will add a console.log( res ) in index.js and wait for the next request to trigger this function call.
+(Or maybe you may want I run node with special parameters (I don't know how) that will log function agument values?):�
+2016-07-20T15:13:16Z�I added the line console.log( "ISSUE-337", res, options, next ); line 628 then I got the following log when my server was scanned again:
+issue-337.txt
+I don't know if it could help... Maybe you need the req?:�
+2016-07-20T15:48:38Z�@noopole can you share the details of the request which results in res.set being undefined? I can't think of a scenario when res.set would be undefined.:�
+2016-07-20T17:58:41Z�@noopole Thanks for the link. It's definitely the response object, but it looks like a raw node.js response object and not one wrapped by Express.js. Is it possible where you're using this is using raw req/res objects and not Express?:�
+2016-07-20T18:41:48Z�@hacksparrow ok I will log req too and send you the log at next IDS scan (maybe tomorrow).
+@blakeembrey I don't know, so I attached my full (simple) sever.js file.
+server.zip
+It's either the static or app.get( '*' ... ) which is inkoked I guess. Maybe my code doesn't like OPTIONS + HEAD requests.
+EDIT 21/7/2016 Sorry for the confusion: I wrote OPTIONS + HEAD but actually I was meaning GET + HEAD, the options parameters of the failing function.:�
+2016-07-20T19:44:07Z�Thanks. I can't seem to replicate it locally or see how the script could cause you issues. Have you found a way to replicate it yourself. Here's some logs from my testing:
+OPTIONS /npp 200 6.063 ms - 8
+OPTIONS / 200 0.907 ms - 8
+OPTIONS /mainui/ 200 0.444 ms - 8
+::1
+GET /mainui/ 404 2.914 ms - 9
+::1
+GET / 404 1.041 ms - 9
+
+Is there something else in your script because looking at your logs you have a 21440 byte successful response for /?:�
+2016-07-21T08:53:15Z�I cannot replicate it myself so I will log the req content line 168 of lib/router/index.js before.
+The successful 21440 bytes GET is the index.html file in my public folder. The /mainui/ GET request is one of the hundred more or less malformed requests that the IDS/IPD send my server in order to compromise it.
+If the issue occurs again today I will open a ticket to my IT helpdesk to ask for the details of the attack (with no hope, it's a big, worldwide company...).
+Last option, I could install a sniffer on my server  to catch all the received requests but I'm not a network specialist.:�
+2016-07-21T18:41:49Z�It seems that the HTTP request that makes it happen starts like this:
+OPTIONS * HTTP/1.1
+I think it's not a well-formed URL, so I don't know how to reproduce it.
+Attached is the log for REQ and RES:
+issue-337-req.txt:�
+2016-07-28T20:48:06Z�The request OPTIONS * HTTP/1.1 is a valid HTTP request; the middle section is allowed to be a single * in the HTTP specification. I am able to reproduce the issue. We'll get it fixed up in 4.14.1 :)��2014-10-29T04:40:49Z"2014-10-29T05:33:32Z*�A URL as a parameter (unescaped, so :// shows) would cause too much of
+the URL to be chopped, assuming the entire URL through the parameter was
+a prefix to be maintained as the 'protocol and host' of the path.2F
+(eabd4564aaa8d209260497b5f3f2dda3591a9dea2014-10-29T05:33:02Z2876:�
+2014-10-29T05:01:35Z�Would you be willing to just post up a demonstration of the bug? Since the PR doesn't include a test case, I'm' not sure how to fix the failures (for example, the change makes GET /proxy?url=http://example.com/blog/post/1 HTTP/1.1 read as /proxy?url=http:ple.com/blog/post/1 within a app.use('/proxy', fn), which definitely seems wrong.:T
+2014-10-29T05:09:58Z<I found your explanation here: aredridel/labnotebook@2f1dc93:/
+2014-10-29T05:13:10ZYep. Just added a test!:5
+2014-10-29T05:13:39Zcorrected the implementation.:`
+2014-10-29T05:16:07ZHIs the word "heir" from some RFC or something? I'm not familiar with it.:R
+2014-10-29T05:20:21Z:http://www.ietf.org/rfc/rfc2396.txt section 3. "heir_part":o
+2014-10-29T05:21:14ZWNot the best choice of words on my part. "net_path_marker", maybe, is the correct term.:�
+2014-10-29T05:21:27ZjSo, i.m.o, I think the detection can be much simplier: just skip all the FQDN stuff if req.url[0] === '/'.:0
+2014-10-29T05:21:41ZOh, quite possibly true!:p
+2014-10-29T05:23:00ZXI need to back-port this to both versions of connect and then back up to express 3, lolz:8
+2014-10-29T05:23:16Z Thanks for the report, good sir!:^
+2014-10-29T05:24:52ZFYou are welcome. Simpler version pushed.
+(And it's ma'am, by the way!):g
+2014-10-29T05:28:39ZO(And it's ma'am, by the way!)
+
+Darn gender words and assumptions! Forgive me :):#
+2014-10-29T05:32:40ZNo worries!:t
+2014-10-29T05:42:30Z\@aredridel I set you as the author on the connect commit as well: senchalabs/connect@baa792d:H
+2014-10-29T06:20:23Z0This fix has been published in 4.10.1 and 3.18.2�
+�2014-08-18T16:23:08Z"2014-09-09T05:50:53Z*�Currently, when passing an ip address like 127.0.0.1 as hostname, req.subdomains returns an array with address parts:  ['0', '127']. I tried to fix it by returning an empty array instead.
+Not sure, however, whether you prefer adding an external dependency (like validator - https://github.com/chriso/validator.js) to check for IP address. (The used regex are taken from it by the way.)2G
+(2de6514b4b4cc7e9629664faa56859da7e5972652014-09-09T05:04:06Z67512:�
+2014-08-18T16:37:27Z�Thanks, though the IPv6 is not correct, because the address is going to come in surrounded by square brackets, I believe. Can or try making an IPv6 request to a test server? If not I can always do it later :):�
+2014-08-18T16:52:31Z�Yes, you seem to be right. From http://tools.ietf.org/html/rfc3986#section-3.2.2:
+
+A host identified by an Internet Protocol literal address, version 6
+[RFC3513] or later, is distinguished by enclosing the IP literal
+within square brackets ("[" and "]").
+Depending on how strict servers are about the spec they may reject the request if the host-header is  not set properly.
+
+I will try to find an IPv6 server, to check.:
+2014-08-18T17:05:27ZgActually nevermind, subdomain is using req.hostname which already takes care of stripping the brackets.:$
+2014-08-18T17:38:08ZOK, good. :)��2015-06-19T14:14:31Z"2015-06-21T06:30:24Z*Closes #2637, #2491, #26172I
+(60e2008dee01a90551623371da939de41c05422e2015-06-19T15:59:33Z1088987:�
+2015-06-19T15:33:59ZoNice! ✨ I'll play with it in a bit, but the including the numbers in the array makes it even easier to use :)��2014-09-17T21:46:57Z"2014-09-18T05:04:47Z*�This might be a known issue, it might be that it should never have worked in the first place, it might be that I'm losing the plot, but I spotted this and thought it worth raising just in case.
+Up to and including express 4.9.0 the following works such that if someVarThatMightBeEmptyOrAValidPath is an empty string, the middleware is mounted at the fallback of "/".
+app.use(someVarThatMightBeEmptyOrAValidPath, function (res, req, next) {
+    next();
+});
+
+However, after an upgrade to 4.9.1 the code causes the following error:
+ERROR: Router.use() requires callback function but got a [object String]
+I've changed the code in question to use an if statement to check for an empty string, bit messy but no big deal. However, as this does represent an admittedly obscure breaking change between patch versions I'm guessing this might not have been intended?2G
+(3c1a96436237e4dc920786030b05b4903b9dcfff2014-09-18T04:18:01Z67512:�
+2014-09-17T21:48:22ZwYou could also do this:
+app.use(someVarThatMightBeEmptyOrAValidPath || '/', function (res, req, next) {
+    next();
+});:"
+2014-09-17T22:06:02Z
+See #2361.:�
+2014-09-17T22:11:59Z�Ah whoops! I looked through all the open issues, but I keep forgetting that GitHub doesn't include PRs in that any more so I missed that! I'll close this & hold on for 0.4.2.:M
+2014-09-17T23:16:40Z5Re opening so people see it will be fixed in 4.9.2 :):�
+2014-09-18T05:54:38ZnThank you every one for the report and your patience while I'm on vacation :) 4.9.2 has been published to npm.��2014-09-17T19:53:59Z"2014-09-18T05:04:47Z*�I don't know if this was ever intended, but prior to 4.9.1 (specifically, cf41a8f#diff-5372f626ee15242f1e2c6eb31655b4faR168) an empty path "worked". I'm not saying it was a good practice, but the ensuing error message after upgrading to 4.9.1 is a bit unhelpful ("expected function but got Object").
+So this 'restores' the tolerance for app.use with an empty string as the path. Alternatively, maybe checking if fn is an empty string and throwing a more specific error message would be better if the intention was to actually disallow it.2G
+(3c1a96436237e4dc920786030b05b4903b9dcfff2014-09-18T04:18:01Z67512:�
+2014-09-17T20:33:45Z�Thank you for the PR! Yes, the empty string may be weird, but it was not intentional to break it. There will be a 4.9.2 release later today (US time) with it fixed :):�
+2014-09-18T05:54:50ZnThank you every one for the report and your patience while I'm on vacation :) 4.9.2 has been published to npm.��2014-06-06T11:11:28Z"2014-06-06T17:54:48Z*QHere I couldn't get req.params[0] in the handle which is placed after the router.2G
+(b89a597029c8e0c7fe5e97d326853f7acacf0f772014-06-22T18:02:36Z67512:�
+2014-06-06T15:16:41Z|Thank you, this does look like a bug.
+P.S. Please paste your code in next time, otherwise it's really hard for me to run it.��2014-12-27T21:37:15Z"2015-01-05T00:26:41Z*�res.download(filePath, fileName, function(err) {....})
+
+... always throws an "Request aborted" error
+express: v4.10.6
+node: v0.10.35
+Chrome: Version 39.0.2171.952G
+(3387916efcac19302188151a24927a0405a373e82015-01-05T00:26:15Z67512:�
+2014-12-27T21:50:29ZkCan you add something like Morgan to your app and see if Chrome is making two requests where it aborts one?:�
+2014-12-27T22:19:24Z�GET /download 304 5.643 ms - -
+Error: Request aborted
+at Object._onImmediate (/Projects/***/node_modules/express/lib/response.js:945:17)
+at processImmediate [as _immediateCallback] (timers.js:354:15)
+
+When I use Chrome incognito, everything works great like in Safari.:�
+2015-01-04T23:54:27Z�I reset Chrome, now it's fine. Maybe we can close this issue...
+
+@benno208 , I just noticed you deleted the comment I quoted above. Are you still having this issue? Any help on reproducing it, like perhaps a simple app you are using?:^
+2015-01-05T00:06:03ZFI have figured out the issue: it occurs on things like a 304 response.��2017-05-10T22:25:19Z"2017-05-15T05:58:48Z*This PR addresses #3303.2H
+(ae0b630ac7e8f34e4ea37285f30db4b52adf84362017-05-15T05:58:25Z663175:c
+2017-05-12T06:43:15ZKThanks @dougwilson. Is there anything else I need to do to get this merged?:6
+2017-05-15T05:33:25ZSorry, was just slow to merge.��2013-09-06T07:05:37Z"2013-09-08T18:30:23Z* shouldn't utf-8 be the default ?2I
+(69290cad6fc66154181650d4eedd10d487488ad52013-09-08T08:10:46Z1163358:c
+2013-09-08T00:24:00ZKhmm we should be grabbing the charset from mime.lookup() if it suggests one��2014-12-03T08:54:01Z"2015-01-05T01:07:51Z*�Should you have duplicate handlers for a single method, the Allow header in response to OPTIONS will contain the same method twice. E.g. GET, GET, POST.2G
+(12626aed35a6d1ef4466fa0d67613a53db8b11492015-01-05T01:07:21Z67512��2017-08-30T13:07:45Z"2017-09-22T03:17:08Z*�
+Content in localhost:
+TypeError: this.engine is not a function
+    at View.render (/home/vitalkanev/node_modules/express/lib/view.js:127:8)
+    at tryRender (/home/vitalkanev/node_modules/express/lib/application.js:640:10)
+    at Function.render (/home/vitalkanev/node_modules/express/lib/application.js:592:3)
+    at ServerResponse.render (/home/vitalkanev/node_modules/express/lib/response.js:971:7)
+    at /home/vitalkanev/siteData/expressors/data.js:5:13
+    at Layer.handle [as handle_request] (/home/vitalkanev/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/vitalkanev/node_modules/express/lib/router/route.js:137:13)
+    at Route.dispatch (/home/vitalkanev/node_modules/express/lib/router/route.js:112:3)
+    at Layer.handle [as handle_request] (/home/vitalkanev/node_modules/express/lib/router/layer.js:95:5)
+    at /home/vitalkanev/node_modules/express/lib/router/index.js:281:22
+
+Content of the file:
+let express = require("express");
+let app = express();
+
+app.get("/", function(req, res) {
+        res.render("./index.html");
+});
+
+app.get("/somepage", function(req, res) {
+        res.render("./somePage.html");
+});
+
+app.listen(3000);
+Listing of the directory:
+vitalkanev@vitalkanev-HP:~/siteData/expressors$ ls
+data.js  views
+
+Operating System: Lubuntu Zesty
+Node version: 8.4.0
+NPM version: 5.3.0, as comes with the Node version above2G
+(80f1ea9bec3c5aedb08a6917ecc24fb8d22b707d2017-09-26T03:11:33Z67512:�
+2017-08-30T15:33:26Z�Try this
+npm install ejs --save
+npm install path --save
+Add this to your app.js(express js file)
+var path = require('path');
+app.set('views', path.join(__dirname, 'views'));
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
+OR this one liner will work
+app.use(express.static(__dirname + '/public'));
+Next time please use Stackoverflow before posting a issue here 😄:�
+2017-09-22T03:07:18Z�There is a usability issue here, though: it looks like @vitalkanev may have installed the module html, but since that module is not an Express template module, it causes this odd error. The error can be made better, though.��2015-05-19T21:37:47Z"2015-06-21T06:30:24Z*�Fixes an inconsistency within the router:
+express = require "express"
+
+app = express()
+
+
+app.param "num", (req, res, next, value) ->
+  if value.match(/[0-9]+/)
+    next()
+  else
+    next("route")
+
+
+app.param "alpha", (req, res, next, value) ->
+  if value.match(/[a-z]+/)
+    next()
+  else
+    next("route")
+
+
+app.get "/:alpha/:num", (req, res) ->
+  # this works for /asd/123
+  res.status(200).send("Matched Alpha/Num")
+
+
+app.get "/:alpha/static", (req, res) ->
+  # this works for /asd/static
+  res.status(200).send("Matched Alpha/Static")
+
+
+app.get "/:num/static", (req, res) ->
+  # this works for /123/static
+  res.status(200).send("Matched Num/Static")
+
+
+app.get "/:num/:alpha", (req, res) ->
+  # but this doesn't work for /123/asd (generic 'no route matched' 404 error)
+  res.status(200).send("Matched Num/Alpha")
+
+
+app.listen 1234, ->
+  console.log("Ready")
+This could probably be fixed by using a param regexp instead of a function. However there are cases when that's not enough, for example if you're trying to get an object from a database and fall back onto another route if you couldn't find said object.2@
+(8da51e3acc0520f67daa92309e294a72a62567262015-06-19T04:14:37Z:~
+2015-05-19T21:44:55ZfGood catch! If you want to practice, please feel free to add a test, otherwise I'll add one for you :):A
+2015-05-19T21:47:10Z)I'll give it a shot when my shift is over:e
+2015-05-20T01:17:31ZMI just ran 670 unit tests in less than 2 seconds. What kind of magic is this?�%�2014-05-15T14:04:22Z"2014-06-14T08:18:22Z*�Hi!
+i'm trying to send the HEAD request, but express calls app.get() method instead app.head(). The issue appeared after upgraded from veriosn 3 to version 4.2. Before the upgrade it worked fine.2G
+(31b2e2d7b4774eed16a93f9a8a20a9967e91e5242014-05-16T21:09:42Z67512:�
+2014-05-15T14:12:35Z�Did you try using POSTMAN the chrome extension to test your app.head method ? If no showing us the code you are using can help you :):�
+2014-05-15T14:54:28Z�Yes i've tried to make request with POSTMAN.
+here is the part of code:
+app.set('strict routing', true);
+app.locals = _.extend({
+    '_': _,
+    'NODE_ENV': config.environment
+}, config.locals);
+app.engine('html', require('ejs-locals'));
+app.engine('ejs', require('ejs-locals'));
+app.set('views', process.cwd() + '/views');
+app.set('view engine', 'ejs');
+app.set('view engine', 'jade');
+app.set('view options', {
+    layout: false
+});
+
+var redisStore = new RedisStore({
+    host: config.nosql.redis.host,
+    port: config.nosql.redis.port,
+    db: config.nosql.redis.db
+});
+
+app.use(favicon('public/favicon.ico'));
+app.use(compress());
+app.use(cookieParser());
+app.use(session({
+    store: redisStore,
+    secret: config.properties.cookie_secret,
+    key: 'qu',
+    cookie: {
+        secure: true
+    }
+}));
+app.use(middlewares.upgradeRequest());
+app.use(middlewares.filterMiddleware());
+app.use(bodyParser({
+    uploadDir: '/tmp'
+}));
+app.use(methodOverride());
+app.use(require('express-validator'));
+app.use(express.query());
+
+/**
+ * configure environment
+ */
+var env = process.env.NODE_ENV;
+if (env == 'development') {
+    app.use(morgan({immediate: true, format: 'dev'}));
+    app.use(errorHandler({dumpExceptions: true, showStack: true}));
+} 
+
+// static handler
+app.use(serveStatic('public'));
+app.use(serveStatic(config.properties.imageStoreStaticPath));
+
+app.get('/api/v1.0/auth',function(){
+    console.log('get method called');
+})
+
+app.head('/api/v1.0/auth',function(){
+    console.log('auth method called');
+})
+
+Also i noticed that if route with head method defined before get method, it will call head method:�
+2014-05-15T15:37:06Z�This behavior is intentional because express is not a strict REST route. People should only need to attach their routes to GET and get the automatic HEAD behavior from HTTP. If there is no HEAD route defined for a path, then it'll run GET and turn it into a HEAD request.
+
+Also i noticed that if route with head method defined before get method, it will call head method
+
+Does defining the head route for the path after the get path not call the head path?:�
+2014-05-15T15:49:35Z�Does defining the head route for the path after the get path not call the head path?
+
+I have confirmed it does not and that is a bug.:G
+2014-05-15T15:51:45Z/This ordering bug does not exist in express 3.x:�
+2014-05-15T15:52:31Z�Yea, because of a difference in how routes were stores.
+On May 15, 2014 9:51 AM, "Douglas Christopher Wilson" <
+notifications@github.com> wrote:
+
+This ordering bug does not exist in express 3.x
+—
+Reply to this email directly or view it on GitHubhttps://github.com//issues/2116#issuecomment-43211570
+.:P
+2014-05-15T15:53:00Z8I didn't get this bug in 3.x only after upgrading to 4.2:�
+2014-05-15T15:56:42Z�Yea, because of a difference in how routes were stores.
+
+Yep, I see that. I'm investigating.
+
+I didn't get this bug in 3.x only after upgrading to 4.2
+
+Thanks :) The current work-around would be to do:
+app.route('/api/v1.0/auth')
+.get(function(){
+    console.log('get method called');
+})
+.head(function(){
+    console.log('auth method called');
+}):�
+2014-05-15T16:26:59Z�@defunctzombie right now my solution is to make the app.VERB methods cache their routes such that app.get('/');app.head('/'); is the same as app.route('/').get().head():�
+2014-05-15T16:28:37Zo@dougwilson lets see a PR and we can review it. As long as tests pass it should be ok. Add a new test for this.:�
+2014-05-15T16:31:45Z�lets see a PR and we can review it
+
+Almost like a PR: https://github.com/visionmedia/express/compare/baseverbs
+
+As long as tests pass it should be ok
+
+Of course they do ;)
+
+Add a new test for this.
+
+Of course I did ;):�
+2014-05-24T00:37:01ZjThe fixed caused a bigger issue, so it has been reverted for the time being and a new fix will be devised.:�
+2014-06-07T02:59:08Z�I've thought about this long and hard and there is no real good way to fix this without there being gotchas. Basically the official answer will be to use Routers and Routes to build your application in express 4.x and not suffer this issue with the ad-hoc methods that are app.VERB.
+As a courtesy I will add a way to have a route (like the get route) opt-out of the automatic HEAD -> GET conversion process.:E
+2014-06-14T08:18:22Z-Closing since fixing this broke other things.��2017-05-09T20:48:48Z"2017-05-15T05:58:48Z*�When I run this code:
+res.set('content-type', ['application/json'])`
+
+The following error is thrown:
+TypeError: value.split is not a function
+
+It seems to stem from the following line which assumes that the value of content-type will always be a string:
+https://github.com/expressjs/express/blob/master/lib/response.js#L721
+Is this a bug or a feature?
+EDIT: Please let me know what the expected behavior is and I will be happy to submit a PR. I'm assuming we should either handle this error, or accept an array for 'content-type'.2H
+(ae0b630ac7e8f34e4ea37285f30db4b52adf84362017-05-15T05:58:25Z663175:�
+2017-05-09T21:09:51Z�Hi @oztune I would say that accepting an array doesn't even make sense, and since this code has been there for all of 4.x, providing an array would have always been an error. I think that this is a good change, in that we should add a guard that throws a better error message when a non-string is provided for content-type.
+My reasoning is that it's easier to loosen a restriction than to add it back later, so if there ever is some demand for an array, we can easily add that, but I can't think of any reason an array would make sense in this header, unless you know.
+Please feel free to make a PR :) !:�
+2017-05-10T21:53:22Z�@dougwilson I agree, I'll make a PR that throws a more sensible error. My use-case was that I'm proxying a node-fetch response over to an express response, and a very special API error was causing this odd failure.��2014-09-12T22:35:00Z"2014-09-12T23:47:38Z*XWhen the mount path is not specified, app.use() fails if the first argument is an array.2G
+(cf41a8f25434bde16ee8606ce12bb699ef9de39e2014-09-12T23:46:49Z67512:�
+2014-09-12T22:38:49Z�Ah. I don't think there is a good way to resolve this ambiguity, but there is a hack I can do to make it usually do the right thing.:�
+2014-09-12T22:41:30Z�Looking forward to it :) I thought it would be relatively simple -  detect the object type, (flatten, if array) and continue as usual.:�
+2014-09-12T22:50:39Z�Well, the path can be an array and so any any of the fns. The way I'm going to do it is to check if the first argument is an array and check if the first element of the array is a function (or an array, then check the first element, etc. recursively). Right now I think app.use([fn1], [fn2]) also is an issue, as it'll skip fn1.:~
+2014-09-12T22:54:17ZfRight. In the mean time, I have added a note about needing to specify the mount path for the scenario.:I
+2014-09-17T19:04:03Z1@hacksparrow this should be fixed in 4.9.1 now :):
+2014-09-17T19:05:22Z👏�T�2014-10-15T03:10:17Z"2014-10-24T04:31:37Z*�
+On a system I deployed today (against npm package version 4.9.7), I've been getting this stacktrace on approximately an hour cadence. I'm trying to get the actual request being made. It is almost certainly from some internet scammer's http request as this is a test system that isn't indexed by google, but is open to the internet. The path is undefined.
+/home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:243
+    var c = path[layerPath.length];
+                ^
+TypeError: Cannot read property '0' of null
+    at trim_prefix (/home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:243:17)
+    at /home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:237:9
+    at Function.proto.process_params (/home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:312:12)
+    at /home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:228:12
+    at Function.match_layer (/home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:295:3)
+    at next (/home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:189:10)
+    at Function.proto.handle (/home/nodeuser/UkWebsite/node_modules/express/lib/router/index.js:165:3)
+    at Function.app.handle (/home/nodeuser/UkWebsite/node_modules/express/lib/application.js:141:10)
+    at Server.app (/home/nodeuser/UkWebsite/node_modules/express/lib/express.js:28:9)2G
+(68290ee87af9d6366e9d153882463f23f4f6bdb52014-10-24T03:33:38Z67512:g
+2014-10-15T03:26:54ZOMore code would be useful. Try to log out the request before it hits that spot.:�
+2014-10-15T03:33:21Z�This may be occurring if you have code that is manipulating req.url and setting it to an empty string, possibly. Can you confirm?:�
+2014-10-15T03:50:20Z�I'm still waiting for a new http request. Here is all the code handling my routes.
+var express = require('express');
+var parser = require('body-parser');
+var app = express();
+app.disable('x-powered-by');
+app.use(parser.json());
+app.use(parser.urlencoded({extended: false}));
+var nib = require('nib');
+var stylus = require('stylus');
+
+function compileStyleSheet(str, path) {
+  return stylus(str).set('filename', path).use(nib());
+}
+
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
+var publicDir = __dirname + '/static';
+app.use('/static', stylus.middleware({
+  src: publicDir,
+  compile: compileStyleSheet
+}));
+
+app.use('/static', express.static(publicDir));
+app.use('/favicon.ico', express.static(publicDir + '/favicon.ico'));
+app.use('/robots.txt', express.static(publicDir + '/robots.txt'));
+
+app.get('/', function(req, res) {
+    res.sendStatus(500);
+});
+
+app.get('/lookup', function(req, res) {
+    res.sendStatus(500);
+});
+
+app.get('/report', function(req, res) {
+    res.sendStatus(500);
+});
+app.post('/report', function(req, res) {
+    res.sendStatus(500);
+});
+app.get('/sites', function(req, res) {
+    res.sendStatus(500);
+});
+app.get('/areacode', function(req, res) {
+    res.sendStatus(500);
+});
+app.get('/areacode/:areaCode', function(req, res) {
+    res.sendStatus(500);
+});
+
+//app.param('phoneNumber', /^\d+$/);
+app.get('/lookup/:phoneNumber', function(req, res) {
+    res.sendStatus(500);
+});
+
+app.post('/lookup/:phoneNumber', function(req, res) {
+    res.sendStatus(500);
+});
+
+app.listen(80);:�&
+2014-10-15T03:51:47Z�&basicwebsite@0.0.1 /home/nodeuser/UkWebsite
+├─┬ body-parser@1.9.0
+│ ├── bytes@1.0.0
+│ ├── depd@1.0.0
+│ ├── iconv-lite@0.4.4
+│ ├── media-typer@0.3.0
+│ ├─┬ on-finished@2.1.0
+│ │ └── ee-first@1.0.5
+│ ├── qs@2.2.4
+│ ├── raw-body@1.3.0
+│ └─┬ type-is@1.5.2
+│   └─┬ mime-types@2.0.2
+│     └── mime-db@1.1.0
+├─┬ express@4.9.7
+│ ├─┬ accepts@1.1.1
+│ │ ├─┬ mime-types@2.0.2
+│ │ │ └── mime-db@1.1.0
+│ │ └── negotiator@0.4.8
+│ ├── cookie@0.1.2
+│ ├── cookie-signature@1.0.5
+│ ├─┬ debug@2.0.0
+│ │ └── ms@0.6.2
+│ ├── depd@0.4.5
+│ ├── escape-html@1.0.1
+│ ├─┬ etag@1.4.0
+│ │ └── crc@3.0.0
+│ ├── finalhandler@0.2.0
+│ ├── fresh@0.2.4
+│ ├── media-typer@0.3.0
+│ ├── merge-descriptors@0.0.2
+│ ├── methods@1.1.0
+│ ├─┬ on-finished@2.1.0
+│ │ └── ee-first@1.0.5
+│ ├── parseurl@1.3.0
+│ ├── path-to-regexp@0.1.3
+│ ├─┬ proxy-addr@1.0.3
+│ │ ├── forwarded@0.1.0
+│ │ └── ipaddr.js@0.1.3
+│ ├── qs@2.2.4
+│ ├── range-parser@1.0.2
+│ ├─┬ send@0.9.3
+│ │ ├── destroy@1.0.3
+│ │ ├── mime@1.2.11
+│ │ └── ms@0.6.2
+│ ├── serve-static@1.6.4
+│ ├─┬ type-is@1.5.2
+│ │ └─┬ mime-types@2.0.2
+│ │   └── mime-db@1.1.0
+│ ├── utils-merge@1.0.0
+│ └── vary@1.0.0
+├── express-params@0.0.3
+├─┬ hiredis@0.1.17
+│ ├── bindings@1.2.1
+│ └── nan@1.1.2
+├─┬ jade@1.7.0
+│ ├── character-parser@1.2.0
+│ ├── commander@2.1.0
+│ ├─┬ constantinople@2.0.1
+│ │ └─┬ uglify-js@2.4.15
+│ │   ├── async@0.2.10
+│ │   ├─┬ optimist@0.3.7
+│ │   │ └── wordwrap@0.0.2
+│ │   ├─┬ source-map@0.1.34
+│ │   │ └── amdefine@0.1.0
+│ │   └── uglify-to-browserify@1.0.2
+│ ├─┬ mkdirp@0.5.0
+│ │ └── minimist@0.0.8
+│ ├─┬ monocle@1.1.51
+│ │ └─┬ readdirp@0.2.5
+│ │   └─┬ minimatch@1.0.0
+│ │     ├── lru-cache@2.5.0
+│ │     └── sigmund@1.0.0
+│ ├─┬ transformers@2.1.0
+│ │ ├─┬ css@1.0.8
+│ │ │ ├── css-parse@1.0.4
+│ │ │ └── css-stringify@1.0.5
+│ │ ├─┬ promise@2.0.0
+│ │ │ └── is-promise@1.0.1
+│ │ └─┬ uglify-js@2.2.5
+│ │   ├─┬ optimist@0.3.7
+│ │   │ └── wordwrap@0.0.2
+│ │   └─┬ source-map@0.1.40
+│ │     └── amdefine@0.1.0
+│ ├── void-elements@1.0.0
+│ └─┬ with@3.0.1
+│   └─┬ uglify-js@2.4.15
+│     ├── async@0.2.10
+│     ├─┬ optimist@0.3.7
+│     │ └── wordwrap@0.0.2
+│     ├─┬ source-map@0.1.34
+│     │ └── amdefine@0.1.0
+│     └── uglify-to-browserify@1.0.2
+├─┬ nib@1.0.4
+│ └─┬ stylus@0.45.1
+│   ├── css-parse@1.7.0
+│   ├─┬ debug@2.0.0
+│   │ └── ms@0.6.2
+│   ├─┬ glob@3.2.11
+│   │ ├── inherits@2.0.1
+│   │ └─┬ minimatch@0.3.0
+│   │   ├── lru-cache@2.5.0
+│   │   └── sigmund@1.0.0
+│   ├── mkdirp@0.3.5
+│   └── sax@0.5.8
+├── redis@0.12.1
+├─┬ redis-sentinel-client@0.2.5
+│ ├── debug@0.8.1
+│ └── redis@0.10.3
+├─┬ request@2.45.0
+│ ├── aws-sign2@0.5.0
+│ ├─┬ bl@0.9.3
+│ │ └─┬ readable-stream@1.0.33-1
+│ │   ├── core-util-is@1.0.1
+│ │   ├── inherits@2.0.1
+│ │   ├── isarray@0.0.1
+│ │   └── string_decoder@0.10.31
+│ ├── caseless@0.6.0
+│ ├── forever-agent@0.5.2
+│ ├─┬ form-data@0.1.4
+│ │ ├── async@0.9.0
+│ │ ├─┬ combined-stream@0.0.5
+│ │ │ └── delayed-stream@0.0.5
+│ │ └── mime@1.2.11
+│ ├─┬ hawk@1.1.1
+│ │ ├── boom@0.4.2
+│ │ ├── cryptiles@0.2.2
+│ │ ├── hoek@0.9.1
+│ │ └── sntp@0.2.4
+│ ├─┬ http-signature@0.10.0
+│ │ ├── asn1@0.1.11
+│ │ ├── assert-plus@0.1.2
+│ │ └── ctype@0.5.2
+│ ├── json-stringify-safe@5.0.0
+│ ├── mime-types@1.0.2
+│ ├── node-uuid@1.4.1
+│ ├── oauth-sign@0.4.0
+│ ├── qs@1.2.2
+│ ├── stringstream@0.0.4
+│ ├─┬ tough-cookie@0.12.1
+│ │ └── punycode@1.3.1
+│ └── tunnel-agent@0.4.0
+└─┬ stylus@0.49.2
+  ├── css-parse@1.7.0
+  ├─┬ debug@2.0.0
+  │ └── ms@0.6.2
+  ├─┬ glob@3.2.11
+  │ ├── inherits@2.0.1
+  │ └─┬ minimatch@0.3.0
+  │   ├── lru-cache@2.5.0
+  │   └── sigmund@1.0.0
+  ├── mkdirp@0.3.5
+  ├── sax@0.5.8
+  └─┬ source-map@0.1.40
+    └── amdefine@0.1.0:}
+2014-10-15T03:53:24ZeOK. If you have extra logging code somewhere, please try logging the raw req.url value that comes in.:[
+2014-10-15T04:04:12ZCI'm logging this. I will report back in the morning if it gets hit.:1
+2014-10-18T03:15:40ZHi @jhlange , any update?:1
+2014-10-24T02:55:08ZHi @jhlange , any update?:�
+2014-10-24T03:01:57Z�I haven't looked at the code any further. The box has been online since this was occurring without any more bad activity. It is very probable that this was an attack, but one which the attacker lost interest in. I do not have any way to audit what the original requests were.:�
+2014-10-24T03:09:34Z�Ok. I'm taking a closer since I'm just considering this as the last item for 4.10. It seems the stack trace came from the Node.js HTTP listener handler and straight into the express router and threw, so I should be able to reproduce with pure express. I think I may know what it is, so checking.:I
+2014-10-24T04:36:22Z1@jhlange this shouldn't occur any longer in 4.10+:�
+
+2014-12-08T18:25:48Z�
+I also have this error currently crashing my node/express server as well.
+Using express 4.10.4
+Excuse the post if it's not appropriate place.
+93.185.192.66 - - [Mon, 08 Dec 2014 00:17:21 GMT] "GET http://promodj.com:80/love-edit/promos/5100397/The_Energy_Production_by_DJ_T_Mike_11_05_12_14 HTTP/1.1" 404 1596 "-" "Mozilla/5.0 (Windows NT 5.2; rv:20.0) Gecko/258940574 Firefox/5.42"
+
+/usr/plantwhat/node_modules/express/lib/router/index.js:243
+    var c = path[layerPath.length];
+                ^
+TypeError: Cannot read property '0' of null
+    at trim_prefix (/usr/plantwhat/node_modules/express/lib/router/index.js:243:17)
+    at /usr/plantwhat/node_modules/express/lib/router/index.js:237:9
+    at Function.proto.process_params (/usr/plantwhat/node_modules/express/lib/router/index.js:312:12)
+    at /usr/plantwhat/node_modules/express/lib/router/index.js:228:12
+    at Function.match_layer (/usr/plantwhat/node_modules/express/lib/router/index.js:295:3)
+    at next (/usr/plantwhat/node_modules/express/lib/router/index.js:189:10)
+    at Function.proto.handle (/usr/plantwhat/node_modules/express/lib/router/index.js:165:3)
+    at Function.app.handle (/usr/plantwhat/node_modules/express/lib/application.js:141:10)
+    at Server.app (/usr/plantwhat/node_modules/express/lib/express.js:28:9)
+    at Server.emit (events.js:98:17):�
+2014-12-08T19:05:55Z�Hi @codyirving your stack trace you pasted does not match the source code for express 4.10.4. Can you verify you are really using 4.10.4 and if so, please open a new issue and, if possible, post code to reproduce the issue?�	�2014-07-13T03:59:43Z"2014-07-13T04:08:07Z*�It seems that commit 997a558 modified checking for arguments to app.use, setting mount_path and mount_app respectively. The code reads as if these resolved values should be used once they're set, however line 171 sets the mounted app's mountpath to the original path argument, which in some cases is the mounted app itself, creating a circular reference. The line appears to have been intended to be:
+mount_app.mountpath = mount_path;2G
+(3e32721e24bb0169cbb348ae4654caa90fdfb1c02014-07-13T04:07:43Z67512:;
+2014-07-13T04:01:04Z#Hm. Do you have a test case at all?:T
+2014-07-13T04:02:20Z<Nevermind, I understand what you're saying. Yea, it's a bug.:3
+2014-07-13T04:02:47ZI'll have a 4.6.1 out ASAP.:�
+2014-07-13T04:03:36Z�Wow, thanks for the quick reply @dougwilson. Was going to try to get a PR together with tests, but wanted to get my thoughts written down first. You are on it!:�
+2014-07-13T04:04:19Z�I tried to wait to release 4.6 when I would have time to quickly respond to issues that popped up, because inevitably they do :):�
+2014-07-13T04:08:37ZrOK, so if you would like to confirm that it is fixed with npm install visionmedia/express that would be awesome :):;
+2014-07-13T04:09:47Z#Dude. You are awesome. Testing now.:p
+2014-07-13T04:19:34ZXThings are good to go on my end. Looks good. Thanks so much for such a quick turnaround.:�
+2014-07-13T04:21:23Z�No problem :) 4.6.1 with the fix has been published to npm. It was a dumb refactoring mistake, compounded with no tests for that case. Both have been corrected :D��2015-04-10T09:35:10Z"2015-06-21T06:30:24Z*�Hello
+i have a problem with the params in the url (express v 4.12.3):
+var express = require('express');
+var app = express();
+
+app.get('*/test/:id/status', function (req, res) {
+    res.send(req.params);
+});
+app.listen(3000);
+When requesting with the url:
+http://localhost:3000/a/b/d/test/theId/status
+the output will be:
+ { '0': 'theId', id: '/a/b/d' }
+The wildcard will be assign to the param id.
+Kind regards,
+Dennis2I
+(60e2008dee01a90551623371da939de41c05422e2015-06-19T15:59:33Z1088987:�
+2015-04-16T11:02:34Z�I tested this issue too, with version 4.12.2, result is the same. Probably first * symbol makes url parser doing wrong, i'll try to check URL parser.:�
+2015-06-19T06:38:27Z�We are having issues with the proposed fix if anyone wants to help out fixing the bug in path-to-regexp. Some details over at #2637 (comment)��2015-05-07T04:29:07Z"2015-06-21T06:30:24Z*�Failing test cases for #2617 and optional support for future index value in path-to-regexp from pillarjs/path-to-regexp#51
+The issue is that wildcard *'s result in extra capture groups in the regexp, which is expected, however the keys array doesn't account for this at all. The result is that if you have a * wildcard before any :named parameters then their values will be flip-flopped.
+At first I tried making path-to-regexp return the wildcard groups in the keys array, however it resulted in deadlocking the testcase without any errors, so I deemed it too API breaking. Instead I added an "index" value to the keys which correlates to the index in the array of matches.2I
+(60e2008dee01a90551623371da939de41c05422e2015-06-19T15:59:33Z1088987:G
+2015-05-07T04:32:17Z/Nice :)! Any insight into the one failing test?:�
+2015-05-07T04:37:45Z�Yup, it wont pass until pillarjs/path-to-regexp#51 is in..... it'll also need to get tagged and put into npm and then we'll need to update the package.json, so it's not exactly the quickest fix.:}
+2015-05-07T04:39:13ZeGothcha, makes sense :) Sounds like a solid plan to me. I'll check out the changes in the meantime :D:m
+2015-05-09T21:04:16ZUpath-to-regexp@0.1.5 has been released with an index property to support Express 4.x.:�
+2015-05-10T19:33:25Z�Whoo! I really appreciate your effort :) I really want to get an updated debug module, but idk how long I want to keep waiting, lol:F
+2015-05-10T19:36:33Z.Spoke before I checked: debug was published :D:�
+2015-06-19T05:34:10Z�Thanks for this and getting regexp-to-path updated! The code changed here isn't actually using path-to-regexp's API correctly, but I can get that fixed.:�
+2015-06-19T06:03:35Z}Looks like I found a bug pillarjs/path-to-regexp#55 that is blocking the upgrade to 0.1.5. Hopefully it'll get fixed soon :)!:�
+2015-06-19T06:35:43Z�Ah, @chrisinajar , I see you actually implemented the feature in path-to-regexp :)! So yea, the issue comes down to that the new index properties are wrong in various ways when you pass in an array to pathToRegexp(), which is a show-stopped for us to actually upgrade and use the new feature here in Express.
+I originally had this fix targeted for 4.13, but with this issue and no fix in sight, I'm dropping the 4.13 milestone. I plan to get 4.13 released by Monday 6/22 and if this fix misses that window, it won't have a chance of getting released until 4.14, in 1-2 months.

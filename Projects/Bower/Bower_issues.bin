@@ -1,0 +1,22 @@
+
+bowerbowerýÖ
+2014-06-22T22:11:09Z"2014-07-02T11:31:30Z*ÍDiscover if component is not cacheable (either local resource or branch), and skip caching
+Add new test and force existing tests to use cache, even they use local resources
+
+Should fix #1356, among others.2H
+(197b41d97ac4425978c7b91ad01086d8264785f02014-07-02T11:31:30Z292365:0
+2014-06-26T22:19:14ZCould someone review it?Öþ2016-02-15T13:56:44Z"2016-02-17T08:57:12Z*ØWhen using hooks through the scripts element of the .bowerrc file, the documentation states that the % character will be replaced with the component(s). However, only the first occurence of the character is replaced.2H
+(9f4c2384ea9295accf0143a7f8fce2941d1c2e3a2016-02-15T16:04:01Z604117ß…2015-09-20T14:47:03Z"2015-09-24T13:35:01Z*®bower install --save --save-exact WebHare/designfiles
+creates this dependency:
+  "dependencies": {
+    "designfiles": "1.2037.0"
+  }
+
+It should be
+  "dependencies": {
+    "designfiles": "WebHare/designfiles#1.2037.0"
+  }
+
+Just using bower install --save WebHare/designfiles creates the right dependency2H
+(87a041a212a03142e92c56ff832bcf5cbf49a72b2015-09-24T13:34:49Z292365:1
+2015-09-22T17:17:50ZThanks for reporting this

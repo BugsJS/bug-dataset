@@ -1,0 +1,1636 @@
+
+karma-runnerkarma€
+◊2015-07-16T01:35:08Z"2015-08-04T11:21:36Z*∂Related to #1097, the URL_REGEXP in karma/lib/reporter.js fails for karma-browserify.  Karma-browserify spits out urls like this:
+
+absolute/var/folders/vl/_5jh_5_n3njb7rfcg5tr87p80000gn/T/2316ae91e848b763869f68a80a8e5489.browserify?745c3db05ccd6d7437dca35f2a7b84cdfb23abf1:17133:22
+
+Whereas the expression,
+var URL_REGEXP = new RegExp('http:\\/\\/[^\\/]*\\/' +
+    '(base|absolute)' + // prefix
+    '((?:[A-z]\\:)?[^\\?\\s\\:]*)' + // path
+    '(\\?\\w*)?' + // sha
+    '(\\:(\\d+))?' + // line
+    '(\\:(\\d+))?' + // column
+    '', 'g')
+clearly does not match the output. A simple fix that I have tested is to remove the protocol, like this:
+var URL_REGEXP = new RegExp('\\/' +
+    '(base|absolute)' + // prefix
+    '((?:[A-z]\\:)?[^\\?\\s\\:]*)' + // path
+    '(\\?\\w*)?' + // sha
+    '(\\:(\\d+))?' + // line
+    '(\\:(\\d+))?' + // column
+    '', 'g')
+I will cross-post an issue with karma-browserify, as the fix may be preferable on their end.2H
+(0407a2280b01972ebcebe9ad341cff87c788975e2015-08-04T11:20:09Z135528:q
+2015-07-23T16:11:58ZYHere's a minimum working example:
+https://gist.github.com/brianmhunt/e9b54d35af5c6537e3c8:y
+2015-07-23T17:08:38ZaThanks @brianmhunt for the investigation, I'm happy with your suggested fix. Are you up for a PR?:7
+2015-08-04T12:37:10ZAwesome, thanks @dignifiedquire¨ñ÷2015-07-16T00:38:34Z"2015-07-16T20:52:38Z*‰5:38:03] TypeError: Cannot read property 'mtime' of undefined
+    at c:\git\pos\node_modules\karma\lib\file-list.js:173:37
+    at Array.map (native)
+    at c:\git\pos\node_modules\karma\lib\file-list.js:167:30
+    at Array.map (native)
+    at List._refresh (c:\git\pos\node_modules\karma\lib\file-list.js:150:37)
+    at List.refresh (c:\git\pos\node_modules\karma\lib\file-list.js:249:27)
+    at Server._start (c:\git\pos\node_modules\karma\lib\server.js:149:12)
+    at invoke (c:\git\pos\node_modules\karma\node_modules\di\lib\injector.js:75:15)
+    at Server.start (c:\git\pos\node_modules\karma\lib\server.js:91:18)
+    at runTests (c:\git\pos\gulpfile.js:684:11)
+    at c:\git\pos\gulpfile.js:714:6
+    at bound (domain.js:254:14)
+    at runBound (domain.js:267:12)
+    at asyncRunner (c:\git\pos\node_modules\gulp\node_modules\undertaker\node_modules\bach\node_modules\async-done\index.js:38:18)
+    at process._tickCallback (node.js:355:11)
+    at Function.Module.runMain (module.js:503:11)2H
+(fb841a799d83209a6e0d58722cf6239e4990b9462015-07-16T21:15:31Z790842:R
+2015-07-16T01:25:12Z:Thanks for the report, I will try to fix it in the morning:=
+2015-07-16T01:25:25Z%What version of node are you running?:
+2015-07-16T02:03:51Z0.12.7:≈
+2015-07-16T03:50:33Z¨for some reason karma-jasmine's new version number is lower than the old one! 0.1.6 is < 0.3.6 so NPM favored the newer one.
+Does this work with the latest (assuming 0.3.6):„
+2015-07-16T09:34:30Z There was an issue with the tagging of karma-jasmine, as there are two versions, the 0.1.x branch, which supports jasmine 1 and the 0.3.x branch which supports jasmine 2.
+I fixed that last night though.:°
+2015-07-16T09:52:46Zà@robertbaker I just tested things, and it seems to work fine for me, could you create a small project that reproduces this error please?:∂
+2015-07-16T16:27:52ZùI'm also getting this error once I updated to karma 0.13.0 karma-jasmine 0.3.6. I'm using grunt-karma as well, it just updated to 0.12.0 that fixes the new Server bug.
+On top of that im using requirejs in the tests. I have a version that test with and without requirejs. If I dont run the requirejs tests this error does not occur. @robertbaker are you using requirejs in your tests? If i comment out the requirejs plugin from frameworks: ['jasmine', 'requirejs', 'detectBrowsers'], this error does not print but ofc later errors our as require/define functions are not defined.
+I checked and the karma-requirejs has been updated last time a year ago. I doubt there are big changes and the internals seem pretty simple. I am using requirejs 2.1.19, is it possible there is some breakage there. karma-requirejs does not seem to import its own requirejs.
+Not sure what to think about this tbh, i cant find the 'mtime' error line, havent tried a node debugger yet, not even sure I can run it with my grunt build command that runs the karma tests via grunt.:µ
+2015-07-16T16:33:56ZúThe relevant line is this https://github.com/karma-runner/karma/blob/master/lib/file-list.js#L173 my guess is that the pattern that is checked in the glob isn't found. As requirejs does some strange things when it comes to imports I could imagine that somewhere around there it fails.:ß
+2015-07-16T16:34:45ZéBut this simple requirejs example in our integration tests works fine: https://github.com/karma-runner/integration-tests/tree/master/requirejs:?
+2015-07-16T16:37:22Z'@jonnenauha what os are you running on?:È
+2015-07-16T16:44:30Z–Win8.1 64bit, node v0.12.5, npm 2.11.2
+If anyone else bumps to this until is resolved, I just forced my package.json to the old version. What was missing was forcing karma itself to 0.12.x, if not done something else in the chain was pulling in 0.13 with ^0.12. I'm no node/npm expert but looks like that happened :)
+Force old version(s) with in package.json
+"grunt-karma": "=0.11.1",
+"karma" : "=0.12.37",
+"karma-jasmine": "=0.3.5", // not sure if strictly needed:Ä
+2015-07-16T16:49:52ZhThanks @jonnenauha it looks like this has to do something with windows :( I will see what I can find out:ï
+2015-07-16T16:52:39Z}@dignifiedquire just to give you some more information in case it is helpful.  I am running Win7, node v0.10.30 and npm1.4.21:P
+2015-07-16T16:58:16Z8@jonnenauha I was able to run off of karma-jasmine 0.3.6:j
+2015-07-16T17:00:55ZRCould one of you please post a full log output with log level set to DEBUG please?:ˇ
+2015-07-16T17:20:34ZÊ16 07 2015 10:19:25.224:DEBUG [plugin]: Loading karma-* from D:\development\proj
+ects\ui-tbone\node_modules
+16 07 2015 10:19:25.226:DEBUG [plugin]: Loading plugin D:\development\projects\u
+i-tbone\node_modules/karma-chrome-launcher.
+16 07 2015 10:19:25.232:DEBUG [plugin]: Loading plugin D:\development\projects\u
+i-tbone\node_modules/karma-coverage.
+16 07 2015 10:19:25.435:DEBUG [plugin]: Loading plugin D:\development\projects\u
+i-tbone\node_modules/karma-jasmine.
+16 07 2015 10:19:25.437:DEBUG [plugin]: Loading plugin D:\development\projects\u
+i-tbone\node_modules/karma-phantomjs-launcher.
+16 07 2015 10:19:25.461:DEBUG [plugin]: Loading plugin D:\development\projects\u
+i-tbone\node_modules/karma-qunit.
+16 07 2015 10:19:25.463:DEBUG [plugin]: Loading plugin D:\development\projects\u
+i-tbone\node_modules/karma-requirejs.
+
+D:\development\projects\ui-tbone\node_modules\karma\lib\file-list.js:173
+      var mtime = mg.statCache[path].mtime
+                                    ^
+TypeError: Cannot read property 'mtime' of undefined
+    at D:\development\projects\ui-tbone\node_modules\karma\lib\file-list.js:173:
+37
+    at Array.map (native)
+    at Promise.all.cancellable.then.self.buckets (D:\development\projects\ui-tbo
+ne\node_modules\karma\lib\file-list.js:167:30)
+    at Array.map (native)
+    at List._refresh (D:\development\projects\ui-tbone\node_modules\karma\lib\fi
+le-list.js:150:37)
+    at List.refresh (D:\development\projects\ui-tbone\node_modules\karma\lib\fil
+e-list.js:249:27)
+    at Server._start (D:\development\projects\ui-tbone\node_modules\karma\lib\se
+rver.js:149:12)
+    at invoke (D:\development\projects\ui-tbone\node_modules\karma\node_modules\
+di\lib\injector.js:75:15)
+    at Server.start (D:\development\projects\ui-tbone\node_modules\karma\lib\ser
+ver.js:91:18)
+    at Object.exports.run (D:\development\projects\ui-tbone\node_modules\karma\l
+ib\cli.js:222:26)
+    at requireCliAndRun (C:\Users\tcvetan\AppData\Roaming\npm\node_modules\karma
+-cli\bin\karma:44:16)
+    at C:\Users\tcvetan\AppData\Roaming\npm\node_modules\karma-cli\bin\karma:54:
+12
+    at C:\Users\tcvetan\AppData\Roaming\npm\node_modules\karma-cli\node_modules\
+resolve\lib\async.js:44:21
+    at ondir (C:\Users\tcvetan\AppData\Roaming\npm\node_modules\karma-cli\node_m
+odules\resolve\lib\async.js:187:31)
+    at C:\Users\tcvetan\AppData\Roaming\npm\node_modules\karma-cli\node_modules\
+resolve\lib\async.js:153:39
+    at onex (C:\Users\tcvetan\AppData\Roaming\npm\node_modules\karma-cli\node_mo
+dules\resolve\lib\async.js:93:22):∫
+2015-07-16T17:27:00Z°Here is mine
+$ grunt -v --debug --stack build
+
+.. lots of  (hopefully) unrelated build steps ...
+
+Running "karma:test_unit_browsers" (karma) task
+[D] Task source: c:\<my-git-repo>\node_modules\grunt-karma\tasks\grunt-karma.js
+Verifying property karma.test_unit_browsers exists in config...OK
+File: [no files]
+Options: background=false, client={}, configFile="karma.conf.js", browsers=["PhantomJS"], singleRun
+16 07 2015 18:18:29.819:INFO [framework.detect-browsers]: Following browsers where detected on your system: [ 'Chrome', 'Firefox', 'IE', 'PhantomJS' ]
+Warning: Cannot read property 'mtime' of undefined Use --force to continue.
+TypeError: Cannot read property 'mtime' of undefined
+    at c:\<my-git-repo>\node_modules\karma\lib\file-list.js:173:37
+    at Array.map (native)
+    at c:\<my-git-repo>\node_modules\karma\lib\file-list.js:167:30
+    at Array.map (native)
+    at List._refresh (c:\<my-git-repo>\node_modules\karma\lib\file-list.js:150:37)
+    at List.refresh (c:\<my-git-repo>\node_modules\karma\lib\file-list.js:249:27)
+    at Server._start (c:\<my-git-repo>\node_modules\karma\lib\server.js:149:12)
+    at invoke (c:\<my-git-repo>\node_modules\karma\node_modules\di\lib\injector.js:75:15)
+    at Server.start (c:\<my-git-repo>\node_modules\karma\lib\server.js:91:18)
+    at Object.<anonymous> (c:\<my-git-repo>\node_modules\grunt-karma\tasks\grunt-karma.js:133:14)
+    at Object.<anonymous> (c:\<my-git-repo>\node_modules\grunt\lib\grunt\task.js:264:15)
+    at Object.thisTask.fn (c:\<my-git-repo>\node_modules\grunt\lib\grunt\task.js:82:16)
+    at Object.<anonymous> (c:\<my-git-repo>\node_modules\grunt\lib\util\task.js:301:30)
+    at Task.runTaskFn (c:\<my-git-repo>\node_modules\grunt\lib\util\task.js:251:24)
+    at Task.<anonymous> (c:\<my-git-repo>\node_modules\grunt\lib\util\task.js:300:12)
+    at c:\<my-git-repo>\node_modules\grunt\lib\util\task.js:227:11
+
+Aborted due to warnings.
+
+Does looks like you were right. I havent changed the glob strings in a long time. Here is what they look like, I changed the folder names as its a private repo, hope it clarifies anyways :) From karma.conf.js
+// list of files / patterns to load in the browser
+files: [
+  'test/test-main.js',
+  {pattern: 'src/folder1/**/*.js', included: false},
+  {pattern: 'src/folder2/*.js', included: false},
+  {pattern: 'src/folder3/**/*.js', included: false},
+  {pattern: 'src/folder4/**/*.js', included: false},
+  {pattern: 'test/spec/*.js', included: false}
+],:'
+2015-07-16T17:43:47ZI'm on 8.1 x64.:}
+2015-07-16T17:50:06ZeI was finally able to reproduce this, it seems it's a combination of requirejs + karma@0.13 + windows:£
+2015-07-16T17:51:53Zä@dignifiedquire I'm not using requirejs. However I am using karma-jspm (trying karma-systemjs atm).
+My JS is transpiled typescript to ES6.:e
+2015-07-16T18:15:59ZMThanks @robertbaker I found the issue, I hope to be pushing a fix out tonight:
+2015-07-16T18:16:54Züëç:ÿ
+2015-07-16T18:24:24ZøGood stuff, thanks for being so quick about it. What is the standard way of testing out non tagged git commits/HEAD with npm? Can you also use a commit hash as the version in your package.json or is there some special "~HEAD" syntax? Or do i need to clone the repo under node_modules manually?
+Would love to test and verify the fix once the commit lands later. Prior to needing a tag, but dunno how this npm module development works in practice :):X
+2015-07-16T18:31:06Z@@jonnenauha  npm install karma-runner/karma#master should do it.:Õ
+2015-07-16T20:01:03Z¥@jonnenauha npm install karma-runner/karma#master should do it.
+
+That is a start, but you will need to run
+$ cd node_modules/karma
+$ grunt build
+$ cd ../..
+to get a working version:ù
+2015-07-16T20:02:05ZÑ@jonnenauha also when I have the fix ready I will cut 0.13.1 anyway tonight hopefully, so you don't need to jump through those hoops:2
+2015-07-16T21:28:45ZFix was released in 0.13.1:¬
+2015-07-17T10:40:03Z©Can verify this fixed my issue. Thanks.
+"grunt-karma": "=0.12.0", // This gets karma ^0.12.0 so the latest 0.13.1
+"karma-jasmine": "=0.3.6",
+"karma-requirejs": "^0.2.2",:€
+2015-07-17T14:43:51Z¬hiya,
+It seems this error is still present if you add a pattern like this in the file list to filter the files extensions:
+{ pattern: 'src/main/js/**/*.{js,html,css}', included: false}
+
+Regards.:]
+2015-07-17T15:17:27ZE@fbengrid could you provide more details? For me this is working fine:ú
+2015-07-17T15:36:16ZÉ@dignifiedquire sure
+I don't use requirejs but have my own adapter for the dojo toolkit with its AMD loader.
+Saying this, it shouldn't matter as i would get the issue straight away and it breaks karma before the web server is started.
+The environment is windows.
+karma 0.13.1
+The following pattern
+{ pattern: 'src/main/js/**/*.{js,html,css}', included: false}
+
+breaks karma with the following stack trace:
+17 07 2015 15:23:40.958:DEBUG [plugin]: Loading karma-* from c:\Java\project\dojo\grid\node_modules
+17 07 2015 15:23:40.960:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-chrome-launcher.
+17 07 2015 15:23:40.975:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-coverage.
+17 07 2015 15:23:41.354:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-dhtml-reporter.
+17 07 2015 15:23:41.829:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-firefox-launcher.
+17 07 2015 15:23:41.832:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-ie-launcher.
+17 07 2015 15:23:41.863:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-jasmine.
+17 07 2015 15:23:41.865:DEBUG [plugin]: Loading plugin c:\Java\project\dojo\grid\node_modules/karma-mocha-reporter.
+
+c:\Java\project\dojo\grid\node_modules\karma\lib\file-list.js:174
+      var mtime = mg.statCache[path].mtime
+                                    ^
+TypeError: Cannot read property 'mtime' of undefined
+    at c:\Java\project\dojo\grid\node_modules\karma\lib\file-list.js:174:37
+    at Array.map (native)
+    at c:\Java\project\dojo\grid\node_modules\karma\lib\file-list.js:168:30
+    at Array.map (native)
+    at List._refresh (c:\Java\project\dojo\grid\node_modules\karma\lib\file-list.js:151:37)
+    at List.refresh (c:\Java\project\dojo\grid\node_modules\karma\lib\file-list.js:250:27)
+    at Server._start (c:\Java\project\dojo\grid\node_modules\karma\lib\server.js:149:12)
+    at invoke (c:\Java\project\dojo\grid\node_modules\karma\node_modules\di\lib\injector.js:75:15)
+    at Server.start (c:\Java\project\dojo\grid\node_modules\karma\lib\server.js:91:18)
+    at Object.exports.run (c:\Java\project\dojo\grid\node_modules\karma\lib\cli.js:222:26)
+    at Object.<anonymous> (c:\Java\project\dojo\grid\node_modules\karma\bin\karma:3:23)
+    at Module._compile (module.js:460:26)
+    at Object.Module._extensions..js (module.js:478:10)
+    at Module.load (module.js:355:32)
+    at Function.Module._load (module.js:310:12)
+    at Function.Module.runMain (module.js:501:10)
+
+To resolve the issue and have it working as it was with karma 0.12.x I would need to replace the patterns with the following one:
+{ pattern: 'src/main/js/**/*.js', included: false},
+{ pattern: 'src/main/js/**/*.html', included: false},
+{ pattern: 'src/main/js/**/*.css', included: false},
+
+so splitting the filters works as before, but the grouping them based on the files extension doesn't anymore :(
+Not sure if you need more information ?
+regards
+EDIT:
+forgot to add: node version is 0.12.6:œ
+2015-07-17T15:56:46Z∂I can't reproduce this with the pattern structure you are describing above. Could I see the adapter code you are using, as my guess is that the issue is related to something in there:ÿ
+2015-07-17T16:01:51Zø@dignifiedquire sure, i would be surprised if that was the issue since the only thing which has changed is the version of karma.
+var dojoConfig = {
+
+    // base url containing our JS files
+    baseUrl: '',
+
+    // packages declaration for dojo
+    packages: [ { name: "dojo", location: "/dojo" },
+                { name: "dijit", location: "/dijit" },
+                { name: "grid", location: "/grid" }],
+
+    // Indicates that dojo core should be loaded asynchronously
+    async: true,
+
+    // amount of time to wait before signaling load timeout for a module
+    waitSeconds: 30,
+
+    // append a time to each module url query to avoid module caching
+    cacheBust: true,
+
+    isDebug: true,
+
+    // will contain all the dependencies to be loaded immediately once Dojo has loaded
+    deps: [],
+
+    // the callback to execute when all the deps have been loaded
+    callback: null
+};
+
+(function(karma){
+
+    // Jasmine will start karma when it's loaded, which we don't want since
+    // Karma need to be started only after all the specs and their dependencies have been loaded
+    // by the dojo loader.
+    karma.loaded = function() {};
+
+    // add all the registered the Specs to be loaded by dojo along their dependencies
+    for (var file in karma.files) {
+        if (/Spec\.js$/i.test(file)) {
+            dojoConfig.deps.push(file);
+        }
+    }
+
+    // notify Karma when dojo is ready and that the deps have been loaded
+    dojoConfig.callback = function() {
+        //console.log('dojo deps loaded');
+        karma.start();
+    };
+
+    //console.log(dojoConfig);
+
+})(window.__karma__);:ó
+2015-07-17T16:07:45Z˛Okay, the adapter seems to have nothing to do with it.
+Could you do me a big favor and add in your karma version manually the following line onto https://github.com/karma-runner/karma/blob/master/lib/file-list.js#L173
+log.debug('Fetching cache', pattern, path)
+log.debug('Resolved', Object.keys(mg.statCache))
+and then run with log level set to DEBUG and paste me the output, thanks:Î
+2015-07-17T16:23:25Z“Sending you the logs by email (too big to paste here)
+The failed.log use the pattern:
+{ pattern: 'src/main/js/**/*.{js,html,css}', included: false}
+
+The pass.log use the patterns:
+{ pattern: 'src/main/js/**/*.js', included: false},
+{ pattern: 'src/main/js/**/*.html', included: false},
+{ pattern: 'src/main/js/**/*.css', included: false},:À
+2015-07-17T16:25:00Z≤hiya,
+here are the logs.Regards.
+ Le Vendredi 17 juillet 2015 16h08, Friedel Ziegelmayer <notifications@github.com> a √©crit :
+
+Okay, the adapter seems to have nothing to do with it. Could you do me a big favor and add in your karma version manually the following line onto https://github.com/karma-runner/karma/blob/master/lib/file-list.js#L173log.debug('Fetching cache', pattern, path)
+log.debug('Resolved', Object.keys(mg.statCache))and then run with log level set to DEBUG and paste me the output, thanks‚Äî
+Reply to this email directly or view it on GitHub.:Ø
+2015-07-17T16:55:11ZñI think tou sent the email to github instead of to me. my email is dignifiedquire@gmail.com and you can just paste it into gist.github.com if you want:E
+2015-07-17T16:59:59Z-oups..
+ok sending it to you in gmail in a sec:‘
+2015-07-17T18:15:12ZªI've just changed the pattern from
+{ pattern: 'src/main/js/**/*.{js,html,css}', included: false}
+
+to
+{ pattern: 'src/main/js/**/*.+(js|html|css)', included: false},
+
+and it's working now.:¬
+2015-07-17T19:58:07Z©Good to hear. I found the underlying issue which is related to inconsistencies in node-glob, so it will take a bit till it's fully fixed. Thanks for the detailed report.:v
+2015-07-17T20:04:27Z^glad to have helped.
+Have fun and keep up the good work, this karma environment is a godsend !:?
+2015-07-17T20:32:16Z'@dignifiedquire fixed my issue as well.:H
+2015-08-06T14:29:09Z0Thanks @fbengrid . You've saved me tons of time!:)
+2015-08-06T14:51:32Zyou're welcome :):A
+2016-01-06T02:15:13Z)+1 to @fbengrid's answer. Thanks a lot :):)
+2016-01-06T21:25:44Zyou're welcome :):Ω
+2016-01-12T20:20:18Z§I got this issue when running Karma via Gulp via Gradle, using node 5.0.0. Changing the glob syntax didn't work. Instead upgrading node to 5.4.0 solved the problem.:°
+2016-05-31T16:21:20ZàI have the same issue using Karma (0.13.3) via Grunt with node (6.0.0). Will open a new issue as this one is closed ( New Issue #2158 ).á˙	2014-12-21T17:08:51Z"2016-02-18T17:59:42Z*πWe have two cases when it possible
+
+In latest version of karma-jasmine when test contain variable which does not defined we have error message:
+
+ReferenceError: plus is not defined in http://localhost:9876/base/test.js?5e4e9f0005ec2172d5edc1234305ab74e3267861 (line 6)
+
+
+Firefox sometimes throw error with formatted stack trace. (NOTE: Maybe it's first case)
+Rare case. User can define test cases or test suites which contain url, for example:
+
+it('should go to the http://lolcalhost/base/rest', function(){...})
+In those three cases reporter.js breaks with error:
+ERROR [karma]: [TypeError: Line must be greater than or equal to 1, got 0]
+TypeError: Line must be greater than or equal to 1, got 02H
+(2080221e6bac3ef6dbff0e4aab7784385034d2272016-02-18T16:35:01Z325325:ô
+2015-05-18T19:10:56ZÄ@maksimr are you actually working on this? I added it to the 1.0 milestone as it feels like this is something that needs fixing.:Y
+2015-05-19T10:27:51ZA@dignifiedquire
+Now dont work, but I will look at it on this week:!
+2015-05-19T10:55:17Z	Okay cool:˝
+2015-06-06T01:13:59Z‰I have managed to get this error to happen when I had a unit test still being ran meant to test a service that no longer existed.  I managed to see an angular 'Unknown provider' error when I ran the tests in debug (in webstorm).:5
+2016-01-08T13:31:09Z@maksimr any updates on this?:ö
+2016-02-09T23:49:19ZÅThis patch fixes at least the jasmine case for me (didn't test the others).
+How naive is this fix?
+diff --git a/lib/reporter.js b/lib/reporter.js
+index 9bcbab0..8c62cfe 100644
+--- a/lib/reporter.js
++++ b/lib/reporter.js
+@@ -49,7 +49,7 @@ var createErrorFormatter = function (basePath, emitter, SourceMapConsumer) {
+
+       var file = findFile(path)
+
+-      if (file && file.sourceMap) {
++      if (file && file.sourceMap && line) {
+         line = parseInt(line || '0', 10)
+
+         column = parseInt(column, 10):`
+2016-02-18T18:38:21ZHThanks for the pointer, @codehotter. I implemented that in the PR above.Â®	2014-09-25T23:54:41Z"2014-11-25T01:31:01Z*ikarma start --log-level info --log-level debug
+should use debug, now it throws stupid non-sense exception2G
+(31eb2c2c3ca1663eff94f0398768a9b582332a932014-11-25T00:16:54Z46647˚L√2016-03-12T04:11:21Z"2016-03-23T20:42:22Z*≥JEnviroment Details
+
+Karma version: v0.13.22
+Relevant part of your Gruntfile.js file
+
+
+        karma: {
+            options: {
+                proxies: { '/w': 'http://krinkle.dev/w' }
+                files: [ {
+                    pattern: 'http://krinkle.dev/w/index.php?title=Special:JavaScriptTest/qunit/export',
+                    watched: false,
+                    included: true,
+                    served: false
+                } ],
+                logLevel: 'DEBUG',
+                frameworks: [ 'qunit' ],
+                reporters: [ 'progress' ],
+                singleRun: true,
+                autoWatch: false, ..
+
+Steps to reproduce the behaviour
+When the test page make requests that hit the proxy, as of recent (v1.13.x somewhere) the proxy destination wrongly include the Karma server's port (which is irrelevant to my server).
+E.g. instead of making requests to http://krinkle.dev/w/foo it ends up requesting /w/foo from krinkle.dev:9876. This resolving to localhost then causes an infinite loop.
+Actual behavior
+$ grunt qunit
+Running "assert-mw-env" task
+{ '/w': 'http://alpha.wikipedia.krinkle.dev/w' }
+
+Running "karma:main" (karma) task
+12 03 2016 03:08:43.823:DEBUG [plugin]: Loading karma-* from /Users/krinkle/Development/mediawiki/core/node_modules
+12 03 2016 03:08:43.826:DEBUG [plugin]: Loading plugin /Users/krinkle/Development/mediawiki/core/node_modules/karma-chrome-launcher.
+12 03 2016 03:08:43.829:DEBUG [plugin]: Loading plugin /Users/krinkle/Development/mediawiki/core/node_modules/karma-firefox-launcher.
+12 03 2016 03:08:43.831:DEBUG [plugin]: Loading plugin /Users/krinkle/Development/mediawiki/core/node_modules/karma-qunit.
+12 03 2016 03:08:43.876:INFO [karma]: Karma v0.13.22 server started at http://localhost:9876/
+12 03 2016 03:08:43.881:INFO [launcher]: Starting browser Chrome
+12 03 2016 03:08:43.882:DEBUG [temp-dir]: Creating temp dir at /var/folders/5g/w6rp8_3d56s7jmxjz8p6fznw0000gn/T/karma-37263408
+12 03 2016 03:08:43.882:DEBUG [launcher]: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --user-data-dir=/var/folders/5g/w6rp8_3d56s7jmxjz8p6fznw0000gn/T/karma-37263408 --no-default-browser-check --no-first-run --disable-default-apps --disable-popup-blocking --disable-translate --disable-background-timer-throttling http://localhost:9876/?id=37263408
+12 03 2016 03:08:44.570:DEBUG [web-server]: serving: /Users/krinkle/Development/mediawiki/core/node_modules/karma/static/client.html
+12 03 2016 03:08:44.591:DEBUG [web-server]: serving: /Users/krinkle/Development/mediawiki/core/node_modules/karma/static/karma.js
+12 03 2016 03:08:44.771:DEBUG [karma]: A browser has connected on socket /#MmzbKyrWPLCFsxhDAAAA
+12 03 2016 03:08:44.786:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=MmzbKyrWPLCFsxhDAAAA
+12 03 2016 03:08:44.786:DEBUG [proxy]: NOT upgrading proxyWebSocketRequest /socket.io/?EIO=3&transport=websocket&sid=MmzbKyrWPLCFsxhDAAAA
+12 03 2016 03:08:44.814:DEBUG [web-server]: serving: /Users/krinkle/Development/mediawiki/core/node_modules/karma/static/favicon.ico
+12 03 2016 03:08:44.836:INFO [Chrome 49.0.2623 (Mac OS X 10.10.5)]: Connected on socket /#MmzbKyrWPLCFsxhDAAAA with id 37263408
+12 03 2016 03:08:44.837:DEBUG [launcher]: Chrome (id 37263408) captured in 0.96 secs
+12 03 2016 03:08:44.856:DEBUG [web-server]: serving: /Users/krinkle/Development/mediawiki/core/node_modules/karma/static/context.html
+12 03 2016 03:08:44.871:DEBUG [middleware:source-files]: Requesting /base/node_modules/qunitjs/qunit/qunit.js?a0a54a55df055bd6be9ffbf07ec09ac17504d374 /
+12 03 2016 03:08:44.872:DEBUG [middleware:source-files]: Fetching /Users/krinkle/Development/mediawiki/core/node_modules/qunitjs/qunit/qunit.js
+12 03 2016 03:08:44.874:DEBUG [web-server]: serving (cached): /Users/krinkle/Development/mediawiki/core/node_modules/qunitjs/qunit/qunit.js
+12 03 2016 03:08:44.877:DEBUG [middleware:source-files]: Requesting /base/node_modules/karma-qunit/lib/adapter.js?2cc5e3594a3b8ae53e8218929324788866ad223b /
+12 03 2016 03:08:44.877:DEBUG [middleware:source-files]: Fetching /Users/krinkle/Development/mediawiki/core/node_modules/karma-qunit/lib/adapter.js
+12 03 2016 03:08:44.878:DEBUG [web-server]: serving (cached): /Users/krinkle/Development/mediawiki/core/node_modules/karma-qunit/lib/adapter.js
+12 03 2016 03:08:45.584:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.584:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.585:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.594:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.594:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.595:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.599:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.599:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.599:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.602:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.603:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.603:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.610:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.610:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.610:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.616:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.616:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.617:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.622:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.622:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.622:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.624:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.624:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.625:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+12 03 2016 03:08:45.627:DEBUG [middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+12 03 2016 03:08:45.627:DEBUG [middleware:source-files]: Fetching /w/load.php
+12 03 2016 03:08:45.628:DEBUG [proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+..
+
+
+[middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+[middleware:source-files]: Fetching /w/load.php
+[proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+[middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+[middleware:source-files]: Fetching /w/load.php
+[proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+[middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+[middleware:source-files]: Fetching /w/load.php
+[proxy]: proxying request - /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT to alpha.wikipedia.krinkle.dev:9876
+[middleware:source-files]: Requesting /w/load.php?debug=false&lang=en&modules=jquery%2Cmediawiki&only=scripts&skin=vector&version=qsOUMuwT /
+
+You get the idea :)2I
+(05616a2f4ceca7e86f35a921ab26fe571db33cc92016-03-22T08:09:51Z3490507:.
+2016-03-13T20:40:44ZThanks for the report.:Z
+2016-04-20T03:16:48ZB@dignifiedquire are you waiting in something else to release this?:;
+2016-04-20T10:34:45Z#@zzo the time to prepare everything¯ƒ2013-04-03T08:03:32Z"2013-05-11T21:17:35Z*¨It looks like node 0.10 has changed behavior of child_process.spawn to throw an exception when the binary does not exist:
+From #400
+INFO [karma]: Karma server started at http://localhost:9876/
+INFO [launcher]: Starting browser Chrome
+ERROR [karma]: { [Error: spawn ENOENT] code: 'ENOENT', errno: 'ENOENT', syscall:'spawn' }
+Error: spawn ENOENT
+at errnoException (child_process.js:948:11)
+at Process.ChildProcess._handle.onexit (child_process.js:739:34)
+
+We should handle that and display proper error message (can't find launcher binary, set env variable).2G
+(7d790b29c09c1f3784fe648b7d5ed16add10b4ca2013-05-11T21:17:18Z46647:Ë
+2013-04-04T20:39:20ZœI can confirm that setting env varible (User variable) CHROME_BIN to equal C:\Program Files\Google\Chrome\Application\chrome.exe resolves the problem well.
+So it seems really problem with finding proper .exe:‡
+2013-05-01T17:07:32Z«I'm facing this one on WinXP. Chrome was earlier installed in a user dir, pointing there failed. I then created a copy as per  vict-shevchenko and set the CHROME_BIN var to point there, but that resulted in the same error. Do I need to create a web-server.js for this?
+Sorry, I'm new to Angular / Git / Karma (just 2 hours old):ú
+2013-05-03T12:37:37ZÉOn linux, this bug puts the process in a bad state - you can't ctrl-c (terminate) it, I had to background it (ctrl-z) and use kill.:]
+2013-05-11T19:46:21ZE@gfxmonk yep, we need to handle this exception and this will be fine.:¨	
+2013-05-13T07:10:37Zì	Running Karma 0.8.0 on Windows 7, if my karma configuration has a single browser (and the binary does not exist), Karma hangs indefinitely. I see the following:
+INFO [karma]: Karma server started at http://localhost:9876/
+INFO [launcher]: Starting browser PhantomJS
+ERROR [karma]: { [Error: spawn ENOENT] code: 'ENOENT', errno: 'ENOENT', syscall: 'spawn' }
+Error: spawn ENOENT
+at errnoException (child_process.js:975:11)
+at Process.ChildProcess._handle.onexit (child_process.js:766:34)
+If there is more than one browser in my configuration then I get the message about not being able to invoke kill() on undefined.
+NB I've worked-around the issue by throwing an error if self._process.pid == 0 after the spawn(). Don't think this is the NodeJS way to do it, but it works for me.
+this._execCommand = function(cmd, args) {
+log.debug(cmd + ' ' + args.join(' '));
+self._process = spawn(cmd, args);
+if (self._process.pid == 0) {
+throw Error("Failed to start process: "+cmd);
+}
+var errorOutput = '';
+self._process.stderr.on('data', function(data) {
+errorOutput += data.toString();
+});
+self._process.on('close', function(code) {
+  self._onProcessExit(code, errorOutput);
+});
+
+};:F
+2013-05-13T07:11:32Z.Should have mentioned I'm running Node v0.10.5:!
+2013-05-26T15:43:35Z	same here:≠
+2013-06-17T08:26:20ZîGuys, can you please update and check if it's fixed with 0.8.6 ?
+Even if the binary is not set correctly, it should fail, but not hang indefinitely.:7
+2013-06-19T02:48:38ZYep, looks good to me on 0.8.6.{¥	2014-10-08T00:51:45Z"2014-11-14T16:55:44Z2H
+(6cf795576bd6d77decac68ecc4838871b6df48362014-10-13T19:12:34Z973550Ååâ2015-08-05T11:08:03Z"2015-08-05T17:58:52Z*•On Travis CI with 0.13.6 I get with Node.js (with io.js it is ok) the following message:
+You need to include some adapter that implements karma.start method!
+Locally it is ok.
+Reference:
+
+https://travis-ci.org/albertosantini/argo/jobs/74189986
+#1544 (comment)
+
+P.S.: Locally on Windows 10 box.2H
+(cb2aafb3588904b2636e90521179b476301b031c2015-08-05T16:57:08Z790842:´
+2015-08-05T11:12:23ZíI get the same error locally, and so far I have figured out that it works with Chrome, but fails on headless phantomjs. Version 0.13.4 works fine.:x
+2015-08-05T11:20:24Z`@arty-name what node version are you running, and what phantomjs-launcher and phantomjs version?:ä
+2015-08-05T11:22:51Zr@dignifiedquire,
+Ubuntu 15.04 x64
+node --version
+v0.12.7
+"karma-phantomjs-launcher": "0.2.0"
+"phantomjs": "1.9.17":Å
+2015-08-05T14:20:15ZiSame problem here (0.13.4 works):
+Debian 8.1
+node v0.12.7
+karma-phantomjs-launcher@0.2.0
+phantomjs@1.9.17:Ø
+2015-08-05T15:00:34ZñDoes anyone see this issue consistently, or just sometimes? Because on travis I was able to get rid of the issue after the fifth test run or so. (Which doesn't give me any more ideas as to what the actual problem is :( )
+@coderbyheart @arty-name any public code I could look at?:øc
+2015-08-05T15:06:03Z¶cIt looks like I am facing similar problem. I am trying to setup Karma, Mocha, Chai and PhantomJS but I keep receiving this error:
+jkochman@spaceship:~/Work/MTViewCenter2$ karma start
+05 08 2015 14:57:28.688:DEBUG [plugin]: Loading karma-* from /home/jkochman/Work/MTViewCenter2/node_modules
+05 08 2015 14:57:28.691:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai.
+05 08 2015 14:57:28.692:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-chrome-launcher.
+05 08 2015 14:57:28.696:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-firefox-launcher.
+05 08 2015 14:57:28.697:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha.
+05 08 2015 14:57:28.698:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-phantomjs-launcher.
+05 08 2015 14:57:28.723:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-requirejs.
+05 08 2015 14:57:28.763:INFO [karma]: Karma v0.13.6 server started at http://localhost:9876/
+05 08 2015 14:57:28.767:INFO [launcher]: Starting browser PhantomJS
+05 08 2015 14:57:28.767:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-44042
+05 08 2015 14:57:28.770:DEBUG [launcher]: /home/jkochman/Work/MTViewCenter2/node_modules/phantomjs/lib/phantom/bin/phantomjs /tmp/karma-44042/capture.js
+05 08 2015 14:57:28.881:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/client.html
+05 08 2015 14:57:28.895:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/karma.js
+05 08 2015 14:57:28.925:DEBUG [karma]: A browser has connected on socket ESN93SgZ9uM3wcjNAAAA
+05 08 2015 14:57:28.928:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=ESN93SgZ9uM3wcjNAAAA
+05 08 2015 14:57:28.997:INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket ESN93SgZ9uM3wcjNAAAA with id 44042
+05 08 2015 14:57:28.998:DEBUG [launcher]: PhantomJS (id 44042) captured in 0.234 secs
+05 08 2015 14:57:29.003:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/context.html
+PhantomJS 1.9.8 (Linux 0.0.0) ERROR
+  You need to include some adapter that implements __karma__.start method!
+05 08 2015 14:57:29.050:DEBUG [karma]: Run complete, exiting.
+05 08 2015 14:57:29.051:DEBUG [launcher]: Disconnecting all browsers
+05 08 2015 14:57:29.061:DEBUG [launcher]: Process PhantomJS exited with code 0
+05 08 2015 14:57:29.062:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-44042
+
+If I add another browser like Chrome or Firefox it's running ok. I don't understand why there are two 'PhantomJS 1.9.8 (Linux 0.0.0): Executed 1 of 1 SUCCESS (0.041 secs / 0.001 secs)' lines though:
+jkochman@spaceship:~/Work/MTViewCenter2$ karma start
+05 08 2015 14:59:34.099:DEBUG [plugin]: Loading karma-* from /home/jkochman/Work/MTViewCenter2/node_modules
+05 08 2015 14:59:34.102:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai.
+05 08 2015 14:59:34.103:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-chrome-launcher.
+05 08 2015 14:59:34.107:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-firefox-launcher.
+05 08 2015 14:59:34.108:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha.
+05 08 2015 14:59:34.109:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-phantomjs-launcher.
+05 08 2015 14:59:34.134:DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-requirejs.
+05 08 2015 14:59:34.171:INFO [karma]: Karma v0.13.6 server started at http://localhost:9876/
+05 08 2015 14:59:34.175:INFO [launcher]: Starting browser Chrome
+05 08 2015 14:59:34.175:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-55000399
+05 08 2015 14:59:34.175:DEBUG [launcher]: google-chrome --user-data-dir=/tmp/karma-55000399 --no-default-browser-check --no-first-run --disable-default-apps --disable-popup-blocking --disable-translate http://localhost:9876/?id=55000399
+05 08 2015 14:59:34.181:INFO [launcher]: Starting browser PhantomJS
+05 08 2015 14:59:34.182:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-26205044
+05 08 2015 14:59:34.185:DEBUG [launcher]: /home/jkochman/Work/MTViewCenter2/node_modules/phantomjs/lib/phantom/bin/phantomjs /tmp/karma-26205044/capture.js
+05 08 2015 14:59:34.306:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/client.html
+05 08 2015 14:59:34.319:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/karma.js
+05 08 2015 14:59:34.357:DEBUG [karma]: A browser has connected on socket 3muEwILnWOTT9zTHAAAA
+05 08 2015 14:59:34.373:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=3muEwILnWOTT9zTHAAAA
+05 08 2015 14:59:34.434:INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket 3muEwILnWOTT9zTHAAAA with id 26205044
+05 08 2015 14:59:34.435:DEBUG [launcher]: PhantomJS (id 26205044) captured in 0.263 secs
+05 08 2015 14:59:34.441:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/context.html
+05 08 2015 14:59:34.444:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/chai/chai.js
+05 08 2015 14:59:34.446:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai/adapter.js
+05 08 2015 14:59:34.448:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/mocha/mocha.js
+05 08 2015 14:59:34.450:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha/lib/adapter.js
+05 08 2015 14:59:34.450:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/test-main.js
+05 08 2015 14:59:34.451:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/test/test.spec.js
+PhantomJS 1.9.8 (Linux 0.0.0): Executed 1 of 1 SUCCESS (0.041 secs / 0.001 secs)
+05 08 2015 14:59:34.529:DEBUG [launcher]: Process PhantomJS exited with code 0
+05 08 2015 14:59:34.530:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-26205044
+05 08 2015 14:59:35.038:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/client.html
+05 08 2015 14:59:35.048:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/karma.js
+05 08 2015 14:59:35.125:DEBUG [karma]: A browser has connected on socket zS6D9KPF8OZCBj2IAAAB
+05 08 2015 14:59:35.135:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=zS6D9KPF8OZCBj2IAAAB
+05 08 2015 14:59:35.147:DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/favicon.ico
+05 08 2015 14:59:35.150:INFO [Chrome 44.0.2403 (Linux 0.0.0)]: Connected on socket zS6D9KPF8OZCBj2IAAAB with id 55000399
+05 08 2015 14:59:35.151:DEBUG [launcher]: Chrome (id 55000399) captured in 0.979 secs
+05 08 2015 14:59:35.164:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/context.html
+05 08 2015 14:59:35.169:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/chai/chai.js
+05 08 2015 14:59:35.171:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai/adapter.js
+05 08 2015 14:59:35.172:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/mocha/mocha.js
+05 08 2015 14:59:35.177:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha/lib/adapter.js
+05 08 2015 14:59:35.178:DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/test-main.js
+PhantomJS 1.9.8 (Linux 0.0.0): Executed 1 of 1 SUCCESS (0.041 secs / 0.001 secs)
+Chrome 44.0.2403 (Linux 0.0.0): Executed 1 of 1 SUCCESS (0.009 secs / 0.001 secs)
+TOTAL: 2 SUCCESS
+05 08 2015 14:59:35.229:DEBUG [karma]: Run complete, exiting.
+05 08 2015 14:59:35.230:DEBUG [launcher]: Disconnecting all browsers
+05 08 2015 14:59:35.797:DEBUG [launcher]: Process Chrome exited with code 0
+05 08 2015 14:59:35.797:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-55000399
+
+It also works if I downgrade Karma to 0.12.37 (tried 0.13.4):
+jkochman@spaceship:~/Work/MTViewCenter2$ karma start
+DEBUG [plugin]: Loading karma-* from /home/jkochman/Work/MTViewCenter2/node_modules
+DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai.
+DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-chrome-launcher.
+DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-firefox-launcher.
+DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha.
+DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-phantomjs-launcher.
+DEBUG [plugin]: Loading plugin /home/jkochman/Work/MTViewCenter2/node_modules/karma-requirejs.
+DEBUG [watcher]: Resolved files:
+    /home/jkochman/Work/MTViewCenter2/node_modules/chai/chai.js
+    /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai/adapter.js
+    /home/jkochman/Work/MTViewCenter2/node_modules/mocha/mocha.js
+    /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha/lib/adapter.js
+    /home/jkochman/Work/MTViewCenter2/test/test.spec.js
+INFO [karma]: Karma v0.12.37 server started at http://localhost:9876/
+INFO [launcher]: Starting browser PhantomJS
+DEBUG [temp-dir]: Creating temp dir at /tmp/karma-84303543
+DEBUG [launcher]: /home/jkochman/Work/MTViewCenter2/node_modules/phantomjs/lib/phantom/bin/phantomjs /tmp/karma-84303543/capture.js
+DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/client.html
+DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/karma.js
+DEBUG [web-server]: upgrade /socket.io/1/websocket/1wdsyb1J3mcOT2vp9VqC
+DEBUG [karma]: A browser has connected on socket 1wdsyb1J3mcOT2vp9VqC
+INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket 1wdsyb1J3mcOT2vp9VqC with id 84303543
+DEBUG [launcher]: PhantomJS (id 84303543) captured in 0.378 secs
+DEBUG [web-server]: serving: /home/jkochman/Work/MTViewCenter2/node_modules/karma/static/context.html
+DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/chai/chai.js
+DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma-chai/adapter.js
+DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/mocha/mocha.js
+DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/node_modules/karma-mocha/lib/adapter.js
+DEBUG [web-server]: serving (cached): /home/jkochman/Work/MTViewCenter2/test/test.spec.js
+PhantomJS 1.9.8 (Linux 0.0.0): Executed 1 of 1 SUCCESS (0.044 secs / 0.001 secs)
+DEBUG [karma]: Run complete, exiting.
+DEBUG [launcher]: Disconnecting all browsers
+DEBUG [launcher]: Process PhantomJS exited with code 0
+DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-84303543
+
+Karma config:
+
+// Karma configuration
+// Generated on Wed Aug 05 2015 13:45:25 GMT+0200 (CEST)
+module.exports = function(config) {
+  config.set({
+    // base path that will be used to resolve all patterns (eg. files, exclude)
+    basePath: '',
+    // frameworks to use
+    // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
+    frameworks: ['mocha', 'chai'],
+    // list of files / patterns to load in the browser
+    files: [
+      {pattern: 'test/**/*.spec.js', included: true}
+    ],
+    // list of files to exclude
+    exclude: [
+    ],
+    // preprocess matching files before serving them to the browser
+    // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+    preprocessors: {
+    },
+    // test results reporter to use
+    // possible values: 'dots', 'progress'
+    // available reporters: https://npmjs.org/browse/keyword/karma-reporter
+    reporters: ['progress'],
+    // web server port
+    port: 9876,
+    // enable / disable colors in the output (reporters and logs)
+    colors: true,
+    // level of logging
+    // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
+    logLevel: config.LOG_DEBUG,
+    // enable / disable watching file and executing tests whenever any file changes
+    autoWatch: false,
+    // start these browsers
+    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+    browsers: ['PhantomJS'],
+    // Continuous Integration mode
+    // if true, Karma captures browsers, runs the tests and exits
+    singleRun: true
+  })
+}:°
+2015-08-05T15:12:57ZàSame issue here,
+node: 0.12.7
+karma: 0.13.6
+karma-phantomjs-launcher: 0.2.0
+Just noticed the issue, my test ran and eveything worked as expected the first time (singleRun: true, autoWatch: false). Then I ran them a second time and I couldn't get it to work again since. I get this error too:
+ PhantomJS 1.9.8 (Linux 0.0.0) ERROR
+ You need to include some adapter that implements __karma__.start method
+
+However I didn't get the issue yet when i am using karma with (singleRun: false, autoWatch: true), does anyone have ?:s
+2015-08-05T15:17:43Z[@dignifiedquire, I was getting this error quite reliably, but the code is not public, sorry:ı
+2015-08-05T16:10:00Z‹Okay, I need some more details from you guys please, as I still can't reproduce this anywhere on my machines, could you please install the latest karma-phantomjs-launcher@0.2.1 and use the debugger as described here, set karma log level to debug and let me know what the output on the console, as well as in the opened debuger in the log is please.:â
+2015-08-05T16:32:24ZqI'll try to debug using this asap. Also I'm using karma-mocha v0.1.10, maybe it's relevant ? I assume you don't ?:g
+2015-08-05T16:36:24ZONo, but I just tried with karma-mocha@0.1.10 it was working fine with it for me:À
+2015-08-05T16:41:18Z≤So I have tried the debug configuration and as soon as I put debug: true in it starts working fine. I comment the debug: true out, and it fails again.
+Config:
+{
+    logLevel: 'DEBUG',
+    browsers: ['PhantomJS_custom'],
+    customLaunchers: {
+        'PhantomJS_custom': {
+            base: 'PhantomJS',
+            options: {
+                windowName: 'my-window',
+                settings: {
+                    webSecurityEnabled: false
+                }
+            },
+            flags: ['--load-images=true'],
+            //debug: true
+        }
+    },
+
+    phantomjsLauncher: {
+        // Have phantomjs exit if a ResourceError is encountered (useful if karma exits without killing phantom)
+        exitOnResourceError: true
+    }
+}
+
+Log of failure:
+05 08 2015 16:38:47.987:DEBUG [config]: autoWatch set to false, because of singleRun
+05 08 2015 16:38:47.989:DEBUG [plugin]: Loading plugin karma-jasmine.
+05 08 2015 16:38:47.990:DEBUG [plugin]: Loading plugin karma-coverage.
+05 08 2015 16:38:48.007:DEBUG [plugin]: Loading plugin karma-phantomjs-launcher.
+05 08 2015 16:38:48.027:DEBUG [plugin]: Loading plugin karma-chrome-launcher.
+05 08 2015 16:38:48.031:DEBUG [plugin]: Loading plugin karma-firefox-launcher.
+05 08 2015 16:38:48.032:DEBUG [plugin]: Loading plugin karma-safari-launcher.
+05 08 2015 16:38:48.033:DEBUG [plugin]: Loading plugin karma-junit-reporter.
+05 08 2015 16:38:48.036:DEBUG [plugin]: Loading plugin karma-html-reporter.
+05 08 2015 16:38:48.046:DEBUG [plugin]: Loading plugin karma-spec-reporter.
+05 08 2015 16:38:48.049:DEBUG [plugin]: Loading plugin karma-fixture.
+05 08 2015 16:38:48.050:DEBUG [plugin]: Loading plugin karma-json-fixtures-preprocessor.
+05 08 2015 16:38:48.051:DEBUG [plugin]: Loading inlined plugin (defining launcher:PhantomJS_custom).
+05 08 2015 16:38:48.100:INFO [karma]: Karma v0.13.6 server started at http://localhost:9876/
+05 08 2015 16:38:48.116:INFO [launcher]: Starting browser PhantomJS
+05 08 2015 16:38:48.117:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-17726920
+05 08 2015 16:38:48.119:DEBUG [launcher]: /home/treguben/dev/here.com/node_modules/phantomjs/lib/phantom/bin/phantomjs --load-images=true /tmp/karma-17726920/capture.js
+05 08 2015 16:38:48.218:DEBUG [web-server]: serving: /home/treguben/dev/here.com/node_modules/karma/static/client.html
+05 08 2015 16:38:48.226:DEBUG [web-server]: serving: /home/treguben/dev/here.com/node_modules/karma/static/karma.js
+05 08 2015 16:38:48.245:DEBUG [karma]: A browser has connected on socket EIVNkwuOyie7GgKNAAAA
+05 08 2015 16:38:48.248:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=EIVNkwuOyie7GgKNAAAA
+05 08 2015 16:38:48.307:INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket EIVNkwuOyie7GgKNAAAA with id 17726920
+05 08 2015 16:38:48.308:DEBUG [launcher]: PhantomJS (id 17726920) captured in 0.208 secs
+05 08 2015 16:38:48.312:DEBUG [web-server]: serving: /home/treguben/dev/here.com/node_modules/karma/static/context.html
+PhantomJS 1.9.8 (Linux 0.0.0) ERROR
+  You need to include some adapter that implements __karma__.start method!
+
+
+05 08 2015 16:38:48.357:DEBUG [karma]: Run complete, exiting.
+05 08 2015 16:38:48.357:DEBUG [launcher]: Disconnecting all browsers
+05 08 2015 16:38:48.361:DEBUG [launcher]: Process PhantomJS exited with code 0
+05 08 2015 16:38:48.361:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-17726920:å
+2015-08-05T16:43:00ZÛLog of successful fun in case you need it:
+05 08 2015 16:38:20.750:DEBUG [config]: autoWatch set to false, because of singleRun
+05 08 2015 16:38:20.753:DEBUG [plugin]: Loading plugin karma-jasmine.
+05 08 2015 16:38:20.754:DEBUG [plugin]: Loading plugin karma-coverage.
+05 08 2015 16:38:20.770:DEBUG [plugin]: Loading plugin karma-phantomjs-launcher.
+05 08 2015 16:38:20.789:DEBUG [plugin]: Loading plugin karma-chrome-launcher.
+05 08 2015 16:38:20.794:DEBUG [plugin]: Loading plugin karma-firefox-launcher.
+05 08 2015 16:38:20.795:DEBUG [plugin]: Loading plugin karma-safari-launcher.
+05 08 2015 16:38:20.796:DEBUG [plugin]: Loading plugin karma-junit-reporter.
+05 08 2015 16:38:20.798:DEBUG [plugin]: Loading plugin karma-html-reporter.
+05 08 2015 16:38:20.809:DEBUG [plugin]: Loading plugin karma-spec-reporter.
+05 08 2015 16:38:20.811:DEBUG [plugin]: Loading plugin karma-fixture.
+05 08 2015 16:38:20.813:DEBUG [plugin]: Loading plugin karma-json-fixtures-preprocessor.
+05 08 2015 16:38:20.814:DEBUG [plugin]: Loading inlined plugin (defining launcher:PhantomJS_custom).
+05 08 2015 16:38:20.862:INFO [karma]: Karma v0.13.6 server started at http://localhost:9876/
+05 08 2015 16:38:20.878:INFO [launcher]: Starting browser PhantomJS
+05 08 2015 16:38:20.878:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-80480871
+05 08 2015 16:38:20.881:DEBUG [launcher]: /home/treguben/dev/here.com/node_modules/phantomjs/lib/phantom/bin/phantomjs --load-images=true --remote-debugger-port=9000 --remote-debugger-autorun=yes /tmp/karma-80480871/capture.js
+05 08 2015 16:38:20.884:INFO [phantomjs.launcher]: ACTION REQUIRED:
+05 08 2015 16:38:20.884:INFO [phantomjs.launcher]: 
+05 08 2015 16:38:20.885:INFO [phantomjs.launcher]:   Launch browser at
+05 08 2015 16:38:20.885:INFO [phantomjs.launcher]:   http://localhost:9000/webkit/inspector/inspector.html?page=2
+05 08 2015 16:38:20.885:INFO [phantomjs.launcher]: 
+05 08 2015 16:38:20.885:INFO [phantomjs.launcher]: Waiting 15 seconds ...
+05 08 2015 16:38:20.974:DEBUG [phantomjs.launcher]: Launch the debugger page at http://localhost:9000/webkit/inspector/inspector.html?page=2
+Waiting 15 seconds for debugger page to launch...
+
+05 08 2015 16:38:35.986:DEBUG [phantomjs.launcher]: Launching page http://localhost:9876/?id=80480871...
+
+05 08 2015 16:38:35.994:DEBUG [web-server]: serving: /home/treguben/dev/here.com/node_modules/karma/static/client.html
+05 08 2015 16:38:36.002:DEBUG [web-server]: serving: /home/treguben/dev/here.com/node_modules/karma/static/karma.js
+05 08 2015 16:38:36.024:DEBUG [karma]: A browser has connected on socket ZAs_vF1-u5Cgk-ghAAAA
+05 08 2015 16:38:36.027:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=ZAs_vF1-u5Cgk-ghAAAA
+05 08 2015 16:38:36.079:INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket ZAs_vF1-u5Cgk-ghAAAA with id 80480871
+05 08 2015 16:38:36.080:DEBUG [launcher]: PhantomJS (id 80480871) captured in 15.218 secs
+    <snip>serving a bunch of files</snip>
+PhantomJS 1.9.8 (Linux 0.0.0): Executed 26 of 26 SUCCESS (0.092 secs / 0.304 secs)
+05 08 2015 16:38:36.533:DEBUG [karma]: Run complete, exiting.
+05 08 2015 16:38:36.533:DEBUG [launcher]: Disconnecting all browsers
+05 08 2015 16:38:36.534:DEBUG [coverage]: Writing coverage to /home/treguben/dev/here.com/tests/results/frontend_coverage/PhantomJS 1.9.8 (Linux 0.0.0)
+05 08 2015 16:38:36.573:DEBUG [launcher]: Process PhantomJS exited with code 0
+05 08 2015 16:38:36.574:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-80480871
+05 08 2015 16:38:36.578:DEBUG [reporter.junit]: JUnit results written to "/home/treguben/dev/here.com/tests/results/frontend/PhantomJS_1.9.8_(Linux_0.0.0)/jasmine-test-results.xml".
+
+Done, without errors.:√
+2015-08-05T16:46:48Z™So I have tried the debug configuration and as soon as I put debug: true in it starts working fine. I comment the debug: true out, and it fails again.
+
+Okay, that might actually help me :) it looks like this issue is a race condition due to the changes I made in 96e33dc
+Let's see if I can fix that:º
+2015-08-05T17:02:28Z£Okay, so please try out this pr #1546, you can install it by running
+$ cd node_modules
+$ rm -rf karma
+$ git clone https://github.com/Dignifiedquire/karma
+$ git checkout 1545-race-agains-phantom
+$ npm i
+$ npm i -g grunt-cli # If you don't already have grunt installed
+$ grunt build
+$ cd ../..:,
+2015-08-05T17:18:32ZSeems to work for me:c
+2015-08-05T17:21:10ZKSeems to work for me
+
+:) I'll wait for one more confirm and then release it:ˇ
+2015-08-05T17:24:00ZÊThough for some reasons, I had to git clone your fork, checkout your branch instead of using npm install. The 'client' folder is missing with npm install and as a result static/karma.js is an 'empty' build when I follow your steps:°
+2015-08-05T17:31:32Zà@kketch thanks, I had some typo in the npm install command I think, I've updated the installation details to use git, to ensure it works:Î'
+2015-08-05T17:44:35Z“'In my case it doesn't run the tests anymore with your karma version.
+$ PATH="./node_modules/phantomjs/bin/phantomjs:$PATH" ./node_modules/karma/bin/karma start --browsers PhantomJS_custom test/karma/karma.conf.js
+05 08 2015 17:41:55.419:DEBUG [plugin]: Loading karma-* from /home/m/www/finturanode/node_modules
+05 08 2015 17:41:55.422:DEBUG [plugin]: Loading plugin /home/m/www/finturanode/node_modules/karma-browserstack-launcher.
+05 08 2015 17:41:55.482:DEBUG [plugin]: Loading plugin /home/m/www/finturanode/node_modules/karma-chrome-launcher.
+05 08 2015 17:41:55.486:DEBUG [plugin]: Loading plugin /home/m/www/finturanode/node_modules/karma-coverage.
+05 08 2015 17:41:55.650:DEBUG [plugin]: Loading plugin /home/m/www/finturanode/node_modules/karma-jasmine.
+05 08 2015 17:41:55.651:DEBUG [plugin]: Loading plugin /home/m/www/finturanode/node_modules/karma-phantomjs-launcher.
+05 08 2015 17:41:55.671:DEBUG [plugin]: Loading inlined plugin (defining launcher:PhantomJS_custom).
+05 08 2015 17:41:55.697:DEBUG [watcher]: Excluded file "/home/m/www/finturanode/bower_modules/jquery.inputmask/dist/jquery.inputmask.bundle.js"
+05 08 2015 17:41:55.729:DEBUG [watcher]: Excluded file "/home/m/www/finturanode/bower_modules/intl-tel-input/build/js/intlTelInput.js"
+05 08 2015 17:41:55.729:DEBUG [watcher]: Excluded file "/home/m/www/finturanode/bower_modules/intl-tel-input/lib/libphonenumber/build/utils.js"
+05 08 2015 17:41:55.744:WARN [watcher]: All files matched by "/home/m/www/finturanode/bower_modules/jquery.inputmask/dist/jquery.inputmask.bundle.js" were excluded.
+05 08 2015 17:41:55.745:WARN [watcher]: All files matched by "/home/m/www/finturanode/bower_modules/intl-tel-input/build/js/intlTelInput.js" were excluded.
+05 08 2015 17:41:55.745:WARN [watcher]: All files matched by "/home/m/www/finturanode/bower_modules/intl-tel-input/lib/libphonenumber/build/utils.js" were excluded.
+05 08 2015 17:41:55.769:INFO [karma]: Karma v0.13.6 server started at http://localhost:9876/
+05 08 2015 17:41:55.779:INFO [launcher]: Starting browser PhantomJS
+05 08 2015 17:41:55.779:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-77071060
+05 08 2015 17:41:55.782:DEBUG [launcher]: /home/m/www/finturanode/node_modules/phantomjs/lib/phantom/bin/phantomjs --load-images=true --remote-debugger-port=9000 --remote-debugger-autorun=yes /tmp/karma-77071060/capture.js
+05 08 2015 17:41:55.786:INFO [phantomjs.launcher]: ACTION REQUIRED:
+05 08 2015 17:41:55.786:INFO [phantomjs.launcher]: 
+05 08 2015 17:41:55.786:INFO [phantomjs.launcher]:   Launch browser at
+05 08 2015 17:41:55.786:INFO [phantomjs.launcher]:   http://localhost:9000/webkit/inspector/inspector.html?page=2
+05 08 2015 17:41:55.786:INFO [phantomjs.launcher]: 
+05 08 2015 17:41:55.786:INFO [phantomjs.launcher]: Waiting 15 seconds ...
+05 08 2015 17:41:55.864:DEBUG [phantomjs.launcher]: Launch the debugger page at http://localhost:9000/webkit/inspector/inspector.html?page=2
+Waiting 15 seconds for debugger page to launch...
+
+05 08 2015 17:42:10.873:DEBUG [phantomjs.launcher]: Launching page http://localhost:9876/?id=77071060...
+
+05 08 2015 17:42:10.888:DEBUG [web-server]: serving: /home/m/www/finturanode/node_modules/karma/static/client.html
+05 08 2015 17:42:10.902:DEBUG [web-server]: serving: /home/m/www/finturanode/node_modules/karma/static/karma.js
+05 08 2015 17:42:55.802:WARN [launcher]: PhantomJS have not captured in 60000 ms, killing.
+05 08 2015 17:42:55.810:DEBUG [launcher]: Process PhantomJS exited with code 0
+05 08 2015 17:42:55.810:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-77071060
+05 08 2015 17:42:55.817:INFO [launcher]: Trying to start PhantomJS again (1/2).
+05 08 2015 17:42:55.818:DEBUG [launcher]: Restarting PhantomJS
+05 08 2015 17:42:55.818:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-77071060
+05 08 2015 17:42:55.820:DEBUG [launcher]: /home/m/www/finturanode/node_modules/phantomjs/lib/phantom/bin/phantomjs --load-images=true --remote-debugger-port=9000 --remote-debugger-autorun=yes /tmp/karma-77071060/capture.js --remote-debugger-port=9000 --remote-debugger-autorun=yes /tmp/karma-77071060/capture.js
+05 08 2015 17:42:55.825:INFO [phantomjs.launcher]: ACTION REQUIRED:
+05 08 2015 17:42:55.825:INFO [phantomjs.launcher]: 
+05 08 2015 17:42:55.825:INFO [phantomjs.launcher]:   Launch browser at
+05 08 2015 17:42:55.825:INFO [phantomjs.launcher]:   http://localhost:9000/webkit/inspector/inspector.html?page=2
+05 08 2015 17:42:55.825:INFO [phantomjs.launcher]: 
+05 08 2015 17:42:55.826:INFO [phantomjs.launcher]: Waiting 15 seconds ...
+05 08 2015 17:42:55.958:DEBUG [phantomjs.launcher]: Launch the debugger page at http://localhost:9000/webkit/inspector/inspector.html?page=2
+Waiting 15 seconds for debugger page to launch...
+
+05 08 2015 17:43:10.972:DEBUG [phantomjs.launcher]: Launching page http://localhost:9876/?id=77071060...
+
+05 08 2015 17:43:10.975:DEBUG [web-server]: serving (cached): /home/m/www/finturanode/node_modules/karma/static/client.html
+05 08 2015 17:43:10.984:DEBUG [web-server]: serving (cached): /home/m/www/finturanode/node_modules/karma/static/karma.js:≤
+2015-08-05T17:49:02Zô@coderbyheart  I experimented the same behavior, and this was because I installed karma through npm install, in this case you may have a failed build of static/karma.js like me. Follow the updated steps above (using git clone instead of npm install) and I think you should be fine.:∆
+2015-08-05T17:53:29Z≠Awesome. Works!
+05 08 2015 17:51:33.264:INFO [karma]: Karma v0.13.6 server started at http://localhost:9876/
+
+$ npm list | grep phantom
+‚îÇ ‚îú‚îÄ‚îÄ karma-phantomjs-launcher@0.2.1 extraneous
+‚îÇ ‚îú‚îÄ‚îÄ phantomjs@1.9.17 extraneous
+‚îú‚îÄ‚î¨ karma-phantomjs-launcher@0.2.1
+‚îú‚îÄ‚î¨ phantomjs@1.9.17:L
+2015-08-05T18:08:42Z4Released as 0.13.7
+Thanks everyone for all the help!:r
+2015-08-05T21:50:41ZZWith 0.13.7, for me, it is ok locally on Windows 10 and Travis CI.
+Good job. Thanks folks.::
+2015-08-05T22:07:35Z"Thanks for fixing this so quickly!:Å
+2016-01-06T09:58:01ZËI've seen the same error message for 0.13.7 and 0.13.10.
+... % npm list | grep phantom                                       :(
+‚îú‚îÄ‚î¨ karma-phantomjs-launcher@0.2.1
+‚îî‚îÄ‚î¨ phantomjs@1.9.19
+
+... % npm list | grep karma
+‚îú‚îÄ‚î¨ grunt-karma@0.12.1
+‚îú‚îÄ‚î¨ karma@0.13.7
+‚îú‚îÄ‚îÄ karma-jasmine@0.3.6
+‚îú‚îÄ‚î¨ karma-phantomjs-launcher@0.2.1
+‚îú‚îÄ‚î¨ karma-systemjs@0.9.0
+
+The Error goes like:
+06 01 2016 09:51:27.830:INFO [karma]: Karma v0.13.7 server started at http://localhost:9876/
+06 01 2016 09:51:27.838:INFO [launcher]: Starting browser PhantomJS
+06 01 2016 09:51:27.839:DEBUG [temp-dir]: Creating temp dir at /tmp/karma-8049600
+06 01 2016 09:51:27.840:DEBUG [launcher]: /path/to/project/node_modules/phantomjs/lib/phantom/bin/phantomjs /tmp/karma-8049600/capture.js
+06 01 2016 09:51:27.964:DEBUG [web-server]: serving: /path/to/project/node_modules/karma/static/client.html
+06 01 2016 09:51:27.972:DEBUG [web-server]: serving: /path/to/project/node_modules/karma/static/karma.js
+06 01 2016 09:51:28.002:DEBUG [karma]: A browser has connected on socket oZco5FFbyFTwV_wfAAAA
+06 01 2016 09:51:28.006:DEBUG [web-server]: upgrade /socket.io/?EIO=3&transport=websocket&sid=oZco5FFbyFTwV_wfAAAA
+06 01 2016 09:51:28.068:INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket oZco5FFbyFTwV_wfAAAA with id 8049600
+06 01 2016 09:51:28.068:DEBUG [launcher]: PhantomJS (id 8049600) captured in 0.238 secs
+06 01 2016 09:51:28.073:DEBUG [web-server]: serving: /path/to/project/node_modules/karma/static/context.html
+06 01 2016 09:51:28.075:DEBUG [web-server]: serving (cached): /path/to/project/node_modules/karma-systemjs/lib/adapter.js
+PhantomJS 1.9.8 (Linux 0.0.0) ERROR
+  You need to include some adapter that implements __karma__.start method!
+
+
+06 01 2016 09:51:28.122:DEBUG [karma]: Run complete, exiting.
+06 01 2016 09:51:28.124:DEBUG [launcher]: Disconnecting all browsers
+06 01 2016 09:51:28.128:DEBUG [launcher]: Process PhantomJS exited with code 0
+06 01 2016 09:51:28.128:DEBUG [temp-dir]: Cleaning temp dir /tmp/karma-8049600
+
+For me it looks quite similar to @arty-name's debug output. But it might be related to our use of systemjs.:Ó	
+2016-01-26T17:50:05Z’	I'm getting this error with karma 0.13.19, OSX 10.10.5, with a very simple karma.conf.js and a very simple test file.
+// karma.conf.js
+
+module.exports = function (karmaConfig) {
+  karmaConfig.set({
+
+    browsers: ['Chrome'],
+
+    files: [
+      'src/test.js'
+    ],
+
+    preprocessors: {
+      // normally, with karma-webpack
+      // '**/*': ['webpack']
+    }
+  });
+}
+
+// src/test.js
+
+/*
+some commented out tests...
+*/
+
+console.log('tests loaded');
+
+// Error appears even when this file is empty
+
+The error:
+26 01 2016 17:48:44.173:WARN [karma]: No captured browser, open http://localhost:9876/
+26 01 2016 17:48:44.186:INFO [karma]: Karma v0.13.19 server started at http://localhost:9876/
+26 01 2016 17:48:44.198:INFO [launcher]: Starting browser Chrome
+26 01 2016 17:48:45.118:INFO [Chrome 47.0.2526 (Mac OS X 10.10.5)]: Connected on socket /#Yst37oxFOulgnqbAAAAA with id 5510292
+Chrome 47.0.2526 (Mac OS X 10.10.5) LOG: 'tests loaded'
+
+Chrome 47.0.2526 (Mac OS X 10.10.5) ERROR
+  You need to include some adapter that implements __karma__.start method!
+
+I'll look into the code and see if I can find something
+Edit:
+The also happens in Firefox.
+launcher versions:
+"karma-chrome-launcher": "^0.2.2",
+"karma-firefox-launcher": "^0.1.7",:Ö
+2016-01-26T18:20:51Zm@mhintz you need to include a testing framework like mocha, jasmine or qunit, that's what the error is about.:û
+2016-01-26T22:34:45ZÖAha, thanks! I had been including the karma-unexpected plugin, but that looks like it's terribly outdated. I'm working on a fork now.:®
+2016-04-04T13:22:14ZèI'm not having luck with chrome:
+Chrome 49.0.2623 (Mac OS X 10.10.4) ERROR
+You need to include some adapter that implements karma.start method!:⁄
+2016-10-02T17:55:59Z¡I'm getting the same error ( karma.start method!) with below,
+"karma": "1.3.0",
+"karma-browserify": "^5.0.5",
+"karma-chrome-launcher": "2.0.0",
+"karma-coffee-preprocessor": "^1.0.0",
+"karma-coverage": "~1.1.0",
+"karma-jasmine": "1.0.2",
+"karma-junit-reporter": "^1.1.0",
+"karma-phantomjs-launcher": "1.0.2",
+"merge-stream": "^1.0.0",
+"phantomjs-prebuilt": "2.1.12",
+Debug output is as follows:
+[exec] 02 10 2016 21:22:28.479:DEBUG [web-server]: serving: /path/node_modules/karma/static/context.js
+[exec] PhantomJS 2.1.1 (Mac OS X 0.0.0) ERROR
+[exec]   You need to include some adapter that implements karma.start method!
+[exec] PhantomJS 2.1.1 (Mac OS X 0.0.0): Executed 0 of 0 ERROR (1.005 secs / 0 secs)Ã„2016-10-13T02:31:58Z"2016-12-02T22:34:42Z*ö	Expected behaviour
+Given that the target browser is PhantomJS
+and the plugin package for PhantomJS is not installed.
+When the following code runs:
+  new karma.Server({
+    configFile: __dirname + '/karma.conf.js',
+    singleRun: true
+  }, function(status) {
+    console.log(status);
+  }).start();
+Then the console should print an error and an error status != 0 like this:
+12 10 2016 17:25:43.747:ERROR [launcher]: Cannot load browser "PhantomJS": it is not registered! Perhaps you are missing some plugin?
+12 10 2016 17:25:43.748:ERROR [karma]: Found 1 load error
+{something that is not 0}
+Actual behaviour
+The console shows a status 0:
+12 10 2016 17:25:43.747:ERROR [launcher]: Cannot load browser "PhantomJS": it is not registered! Perhaps you are missing some plugin?
+12 10 2016 17:25:43.748:ERROR [karma]: Found 1 load error
+0
+Environment Details
+
+Karma version (output of karma --version): 1.3.0
+Relevant part of your karma.config.js file
+
+{
+    browsers: ['PhantomJS'],
+}
+Steps to reproduce the behaviour
+See above.
+Additional notes
+This breaks the recommended usage shown in gulp-karma as the job will exit with status 0 and pass CI checks although no tests actually ran!2H
+(86e2ef22c79276ea56031955fd81352413f8b1ba2016-12-02T22:34:41Z616193:L
+2016-10-23T21:22:50Z4It seems you should install karma-phantomjs-launcher:Î
+2016-10-23T21:27:36Z“That's not the point. The point is given that it is not installed, I should obtain an error.
+Currently, if you integrate a karma build in some CI environment, if you forget to add the launcher dependency, or if for some reason it doesn't get installed, karma will report this as a success even though none of the tests could actually run!:v
+2016-10-23T21:29:41Z^I see what you mean. I have got the same error and don't understand why is not documented yet.∑à2015-08-05T08:51:24Z"2015-08-05T09:53:49Z*ÆWith 0.13.5. on Travis CI, I get the below message.
+Locally, on Windows 10 box, it works fine.
+Running "karma:continuos" (karma) task
+04 08 2015 22:02:57.300:INFO [karma]: Karma v0.13.5 server started at http://localhost:9876/
+04 08 2015 22:02:57.306:INFO [launcher]: Starting browser PhantomJS
+04 08 2015 22:02:57.535:INFO [PhantomJS 1.9.8 (Linux 0.0.0)]: Connected on socket OVnFFtIiryxYxgx4AAAA with id 12406497
+TypeError: Cannot read property 'then' of undefined
+    at then (/home/travis/build/albertosantini/argo/node_modules/karma/lib/middleware/common.js:12:19)
+    at /home/travis/build/albertosantini/argo/node_modules/karma/lib/middleware/karma.js:107:27
+    at call (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:239:7)
+    at next (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:183:5)
+    at /home/travis/build/albertosantini/argo/node_modules/karma/lib/middleware/strip_host.js:13:5
+    at call (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:239:7)
+    at next (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:183:5)
+    at /home/travis/build/albertosantini/argo/node_modules/karma/lib/middleware/runner.js:19:14
+    at call (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:239:7)
+    at next (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:183:5)
+    at Function.handle (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:186:3)
+    at Server.app (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/connect/index.js:51:37)
+    at Server.<anonymous> (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/socket.io/node_modules/engine.io/lib/server.js:369:22)
+    at Server.<anonymous> (/home/travis/build/albertosantini/argo/node_modules/karma/node_modules/socket.io/lib/index.js:258:16)
+    at emitTwo (events.js:87:13)
+    at Server.emit (events.js:172:7)
+04 08 2015 22:03:07.537:WARN [PhantomJS 1.9.8 (Linux 0.0.0)]: Disconnected (1 times), because no message in 10000 ms.
+PhantomJS 1.9.8 (Linux 0.0.0): Executed 0 of 0 DISCONNECTED (10.007 secs / 0 secs)
+Warning: Task "karma:continuos" failed.ÔøΩ Use --force to continue.
+
+
+P.S.: with 0.13.3, the test was ok.
+P.S.2: Just with another commit, it is ok. Timeout glitch? I close the issue.2H
+(892fa8945f96a852020ffedf667225f896e2c7602015-08-05T09:53:40Z790842:Z
+2015-08-05T09:23:19ZBReopening, as a tracker for the issue mentioned in #1520 (comment):2
+2015-08-05T09:55:46ZShould be fixed in v0.13.6:È
+2015-08-05T10:01:52Z–With 0.13.6 I get with Node.js (with io.js is ok) the following message:
+You need to include some adapter that implements karma.start method!
+Reference: https://travis-ci.org/albertosantini/argo/jobs/74189986:|
+2015-08-05T10:46:44ZdLooking into it, for some reason this error only appears on travis, but not on my local machines -.-:H
+2015-08-05T10:55:00Z0Here the same.
+Do you prefer I open a new issue?:ƒ
+2015-08-05T11:03:38Z´Yes let's move this into a new issue, it seems that this is only related to phantomjs (this thing makes more problems than you can imagine). I tried your repo locally and can't get tests running at all using phantomjs (no matter what node or karma version) but when I switch to Chrome all is good :(¨à2013-04-27T06:36:30Z"2013-12-01T09:21:43Z*0The right solution is to use SHA of the content.2G
+(6e31cb249ee5b32d91f37ea516ca0f84bddc5aa92013-12-01T07:19:06Z46647û—2017-11-29T17:52:48Z"2017-12-05T11:05:55Z*ÏExpected behaviour
+Correct URL is printed in stacktrace
+Actual behaviour
+Bad URL is printed in stacktrace
+Environment Details
+// package.json
+{
+  "devDependencies": {
+    "karma": "^1.7.1",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-jasmine": "^1.1.0",
+    "jasmine-core": "^2.8.0"
+  }
+}
+//karma.conf.js
+module.exports = function (config) {
+  config.set({
+    urlRoot: '/__karma__',
+    frameworks: ['jasmine'],
+    files: ['tests/**/*.js'],
+    reporters: ['progress'],
+    colors: true,
+    logLevel: config.LOG_INFO,
+    autoWatch: true,
+    browsers: ['Chrome'],
+    singleRun: false
+  });
+};
+// tests/sub/foo.js
+describe('foo', function () {
+    it('test', function () {
+        fail();
+    });
+});
+Steps to reproduce the behaviour
+
+Run tests with ./node_modules/karma/bin/karma start
+Output:
+
+9 11 2017 19:49:40.487:WARN [config]: urlRoot normalized to "/__karma__/"
+29 11 2017 19:49:40.540:WARN [karma]: No captured browser, open http://localhost:9876/__karma__/
+29 11 2017 19:49:40.546:INFO [karma]: Karma v1.7.1 server started at http://0.0.0.0:9876/__karma__/
+29 11 2017 19:49:40.546:INFO [launcher]: Launching browser Chrome with unlimited concurrency
+29 11 2017 19:49:40.560:INFO [launcher]: Starting browser Chrome
+29 11 2017 19:49:40.980:INFO [Chrome 62.0.3202 (Linux 0.0.0)]: Connected on socket 3ny3gbgd6AeYqWRDAAAA with id 79121705
+Chrome 62.0.3202 (Linux 0.0.0) foo test FAILED
+        Failed
+            at UserContext.<anonymous> (http://localhost:9876/__karma__tests/sub/foo.js:3:9)
+Chrome 62.0.3202 (Linux 0.0.0): Executed 1 of 1 (1 FAILED) ERROR (0.003 secs / 0.003 secs)
+
+Unexpected output part:
+  at UserContext.<anonymous> (http://localhost:9876/__karma__tests/sub/foo.js:3:9)
+
+Expected:
+  at UserContext.<anonymous> (tests/sub/foo.js:3:9)2H
+(34dc7d3a7d3aac1adf88ff020ee910e59bed5aea2017-12-03T12:16:46Z390146:Z
+2017-11-29T17:54:05ZBThe issue came from https://youtrack.jetbrains.com/issue/WEB-29940:©
+2017-11-29T18:03:33ZêLooks like urlRoot should be taken into account when composing URL_REGEXP: https://github.com/karma-runner/karma/blob/v1.7.1/lib/reporter.js#L28:*
+2017-12-03T12:23:51ZI tried to fix it.ä¥2016-03-07T12:51:51Z"2016-03-07T13:29:21Z*åExpected behavior
+Plugins should be able to change the configuration before it's used.
+Actual behavior
+Karma instantiates the middleware in lib/web-server.js before plugins are loaded, and does not update the config on request, resulting in issues like #1957 (comment)2H
+(8ef475f7d1a06562e659347dcc53c2e474cbddc72016-03-07T13:29:13Z790842¸Hº2017-03-21T21:16:49Z"2017-04-05T16:34:16Z*ÅUse the most recently computed file sha present on the served file
+when setting the file sha in the scripts tags added to the context.html.
+This fixes an issue where the sha query arg would always be the sha of
+the file when karma initially started and would not take into account
+changes to the file when the watcher is running.
+Closes #2317, #2264
+
+I think this fixes both issues linked above. From what I could tell from my debugging, the sha on the file object in the served files array gets updated each time the file changes and the preprocessors run, but the sha on the included files does not. However for cache busting in the file URL path the sha from included was always used so the browser would end up requesting the original version of the file and it would be served by the browser cache.
+I can add a test for this, but I wanted to get an idea of if this was an acceptable solution.2H
+(b1de55fecd00ba2ebf0da69d6c34c57482b27d0b2017-04-05T16:34:15Z790842:”
+2017-03-21T21:16:50Z∫We found a Contributor License Agreement for you (the sender of this pull request), but were unable to find agreements for the commit author(s).  If you authored these, maybe you used a different email address in the git commits than was used to sign the CLA (login here to double check)?  If these were authored by someone else, then they will need to sign a CLA as well, and confirm that they're okay with these being contributed to Google.:/
+2017-03-21T21:21:20ZCLAs look good, thanks!:Ø
+2017-03-28T03:43:13ZñIs there something I can do to work towards getting this merged? The travis CI build seems to be failing because of a lint error in the master branch.:V
+2017-03-30T10:09:28Z>Thank you, could you rebase onto master so CI is happy please?:å
+2017-03-30T10:15:17Zt@chriscasola can you reproduce the problem with the test?
+I think it will be great if we catch it with tests.
+Thanks:±
+2017-03-30T10:21:08Zò@chriscasola are you sure that this PR fixes the problem in the issue #2317?
+Because as I see there a problem with "nocache"
+Setting nocache to false it does : application.spec.js?a1b2c3d4f5g6
+Setting nocache to true it does : application.spec.js?undefined <-----
+
+#2317 (comment):ï
+2017-03-30T11:07:20Z}Also, I am not sure that this PR fixes the issue #2264
+because there a problem with preprocessing files when user set nocache:õ
+2017-03-30T14:15:20ZÇ@maksimr -- I will work on adding a test to replicate the issue and I'll take another look at the issues I referenced.
+The info in #2317 seems to indicate that in watch mode karma is not picking up changes to files, which is exactly the issue I was having that this PR fixes. I don't think what is described there is actually related to the "nocache" option but I will confirm.
+As far as #2264 I think you're right that it is unrelated, I'll remove that reference from the commit message.
+Thanks for your feedback!:©
+2017-03-30T14:35:03Zê@chriscasola first of all thank you for your help.
+About issue #2317, files with property doNotCache  shouldn't  have a sha(hash) at all. (IMHO):π
+2017-03-30T16:59:13Z†@maksimr I'm not really sure what noCache should do in that case. According to this documentation it simply means karma should not cache the file contents in memory, and instead read from disk each time it is requested. I think that is separate from whether karma should prevent the browser from caching it or not.
+I think the person who originally filed that issue was trying to use the noCache option because they noticed the same bug I did, which was that karma was rerunning tests on save, but not with the latest version of the test files.:b
+2017-03-30T17:49:41ZJ@chriscasola Well, Let's fix the problem and wait for the feedback
+Thanks!:>
+2017-03-31T01:55:44Z&@maksimr -- I added a test and rebased:¥
+2017-04-01T11:43:00Zõ@chriscasola thanks
+I had a look and I think that the current solution fixes the circumstances not the source of the problem.
+We have a FileList class which managed files.
+It contains property files. Each time when we try take a value of this property we call getter method. Getter always return new object.
+Returned object contains two property served and included.
+Served means that file should be served by the karma web server.
+Included means that file should be included on the page by tag script.
+Also, FileList has a method changeFile this method called by watcher when file changed.
+Inside this method, we find a file by path passed from watcher after that we run preprocessors on the changed file.
+Inside Preprocessor we set sha to the file after all preprocessors.
+Ok, FileList waiting while preprocessor works when preprocessor finish work FileList trigger event file_list_modified and pass FileList.files as first argument.
+Karma server and WebServer listen event file_list_modified.
+Karma server on file_list_modifie emit event by socket to the browser and say browser restart tests.
+WebServer on file_list_modifie event save link on files inside filesPromise.
+After that browser mad request to the server for getting files. Here we go to karma middleware
+which handles the request. It takes filePromise and get files from it.
+For included fiels it generate scripts for served files it generate map which also passed to the client.
+As you can see in karma middleware we have another request which uses included files for example '/context.json'.
+So first, I didn't see where we can loose the sha and get the current problem.
+Second I think if sha wrong it should be fixed in another place for example in Preprocessor or FileList becase we have code in different places which rely on sha from included file.:Ì
+
+2017-04-01T16:25:05Z‘
+@maksimr I dug into this more and I think I see what is happening now.
+In my project that is using karma but seeing the issue with changes not being picked up by the watch, we have the files property of our config set to something like:
+[
+  'src/**/*.js',
+  'src/**/*.spec.js',
+]
+
+Obviously, it seems the second matcher there is redundant and can be removed to fix our issue, but because both of the matchers match files ending in .spec.js our test files end up appearing in the FileList under multiple patterns.
+In changeFile the version of the file matched by the second matcher is found and preprocessed. Later on when the files getter is called, the second occurrence of the file, the one that was preprocessed, is put in the served list but the included list ends up pulling the first occurrence, which has the wrong sha and old file contents.
+So in summary, I think the real bug here, is that if a file is matched by more than one file matcher from the karma config, changes are not picked up during the watch.
+What would you recommend for a solution here? Ideas that come to mind are:
+
+Show a warning if the file matchers match more than one file. This doesn't seem ideal since I don't think it makes sense to force people to write matchers that don't overlap.
+Always use the file matched by the first matcher
+Always use the file matched by the last matcher:–
+2017-04-01T16:44:32Z∑@chriscasola Thanks! This is very valuable information/research because now it sounds familiar.
+I think we already had such issue and maybe still have.
+#1499
+
+What would you recommend for a solution here?
+
+For me, we should have only one file which can be presented in several patterns/buckets.
+I will look at the code.
+And yeah, thanks again. Great job. üëç
+P.S.
+Could you create a repo which reproduces the problem If it's not a hassle?:Œ
+2017-04-01T16:51:30Zµ@maksimr -- I think I see where the issue is and have a solution that ensures we always use the file from the first match. Just writing up a quick test and then I'll update this PR.:≤
+2017-04-01T16:59:36ZôDifferent things that maybe related to this problem:
+raspo@353b9cf
+#853
+
+Allow exact file patterns to be specified below wildcard patterns
+First pattern matching a file wins. It might be helpful to make an exception, if you specify exact file name (without any wildcard character).:v
+2017-04-01T17:40:19Z^@maksimr I just pushed what I think fixes the root of the problem, let me know what you think.:D
+2017-04-05T16:25:35Z,@maksimr @dignifiedquire can this be merged?:!
+2017-04-05T16:34:22Z	thank you:É
+2017-09-08T16:18:21ZÍThis is a huge regression. There should be an option to disable it
+All projects that have a configuration similar to below are broken after this change
+files: [
+  { pattern: 'src/**/*', included: false, served: true },
+  { pattern: 'src/**/*.spec', included: true } // 232 tests
+]
+
+> Error 0 of 0 tests executed
+and worse, projects with the following configuration are not even broken. It's just that most of their tests are not being run anymore
+files: [
+  { pattern: 'src/**/*', included: false, served: true },
+  { pattern: 'src/**/*.spec', included: true }, // 232 tests
+  { pattern: 'src2/**/*.spec', included: true } // 81 tests
+]
+
+> 81 of 81 tests executed
+
+And this breaks plugins that append adapters to the end of the files list
+files: [
+  { pattern: 'src/**/*', included: false, served: true },
+  { pattern: 'tests/**/*.spec', included: true },
+  { pattern: 'node_modules/**/*', included: false, served: true }
+  // <<< Plugin appends an adapter here. It is loaded from within node_modules
+]“ø
+2015-03-10T16:31:10Z"2016-01-28T14:32:57Z*”In runner.js:parseExitCode(), the exit code in the message is replaced with null characters (\0x00) as a side effect. The message is then sent to stdout. This results in squares (‚ñ°‚ñ°‚ñ°‚ñ°‚ñ°‚ñ°) being displayed in some terminals, like WebStorm's terminal. Is it possible to output only the message without the trailing null characters?2I
+(3481500e88c6b73e957ad562671c2bb1b5e7ceea2016-01-26T19:28:26Z3490507…:˛2015-10-27T11:27:54Z"2017-01-14T20:37:43Z*ÛFor my angularjs project, trying to use karma+jamine for unit testing. I have installed karma @ local and trying to start from .bin folder. So i'm getting following issue; FYI I'm pasting folder structure along with,
+ERROR,
+C:\Workspace\node_modules\.bin>karma start ../../karma.conf.js
+27 10 2015 09:57:06.461:WARN [karma]: No captured browser, open http://localhost:9876/
+27 10 2015 09:57:06.486:INFO [karma]: Karma v0.13.11 server started at http://localhost:9876/
+27 10 2015 09:57:06.500:INFO [launcher]: Starting browser Chrome
+27 10 2015 09:57:07.111:ERROR [launcher]: Cannot start Chrome
+27 10 2015 09:57:07.119:INFO [launcher]: Trying to start Chrome again (1/2).
+27 10 2015 09:57:07.491:ERROR [launcher]: Cannot start Chrome
+27 10 2015 09:57:07.493:INFO [launcher]: Trying to start Chrome again (2/2).
+27 10 2015 09:57:08.234:ERROR [launcher]: Cannot start Chrome
+27 10 2015 09:57:08.236:ERROR [launcher]: Chrome failed 2 times (cannot start).Giving up.
+27 10 2015 09:57:08.633:INFO [Chrome 46.0.2490 (Windows 7 0.0.0)]: Connected on
+socket PgWwwQDh6BZ7k9fpAAAA with id 74171654
+27 10 2015 09:57:18.954:WARN [Chrome 46.0.2490 (Windows 7 0.0.0)]: Disconnected
+(1 times), because no message in 10000 ms.
+27 10 2015 09:57:18.957:ERROR [karma]: [TypeError: Cannot read property 'map' of
+ undefined]TypeError: Cannot read property 'map' of undefined   at _render (C:\Workspace\node_modules\karma\lib\reporters\progress.js:51:26)
+    at _refresh (C:\Workspace\node_modules\karma\lib\reporters\progress.js:55:34)
+    at onBrowserComplete (C:\Workspace\node_modules\karma\lib\reporters\prog
+ress.js:15:21)
+    at null.<anonymous> (C:\Workspace\node_modules\karma\lib\events.js:13:22
+)
+    at emitOne (events.js:82:20)
+    at emit (events.js:169:7)
+    at null._onTimeout (C:\Workspace\node_modules\karma\lib\browser.js:50:15
+)
+    at Timer.listOnTimeout (timers.js:89:15)
+Folder Structure,
+node_modules
+src
+test
+karma.conf
+package.json
+
+karma.conf
+module.exports = function(config) {
+  config.set({
+    frameworks: ['jasmine'],
+    plugins: [
+        'karma-phantomjs-launcher',
+        'karma-jasmine',
+        'karma-coverage',
+        'karma-chrome-launcher' ,
+        'karma-firefox-launcher',
+        'karma-requirejs',
+        'karma-ie-launcher' 
+    ],
+    files: [
+    'src/assets/js/angular.js',
+        'src/assets/js/angular-mocks.js',
+        'src/app/**/*.js',
+        'test/*.js'
+     ],
+    preprocessors: {
+        'src/app/**/*.js': ['coverage']
+    },
+    reporters: ['progress','coverage'],
+    coverageReporter: {
+        type: 'html',
+        dir: 'coverage'
+    },
+    logLevel: config.LOG_INFO,
+    browsers: ['Chrome'],
+    singleRun: false
+  });
+};2H
+(305df2cafd25421042a74bf076f6e24f58b75c6f2017-01-14T20:37:42Z616193:?
+2015-10-27T11:31:05Z'Can you try without coverage activated?:ó
+2015-10-27T11:44:37Z˛Yes I tried by removing them in karma.conf.js (as below) and started karma but still I'm getting same issue.I hope uninstall coverage doesn't make sense.
+preprocessors: { },
+reporters: ['progress'],
+/* coverageReporter: {type: 'html',dir: 'coverage'}, */:†
+2016-06-07T13:19:09ZáI am getting the same error with Karma v0.13.22 and Chrome 50:
+07 06 2016 12:03:25.680:INFO [Chrome 50.0.2661 (Windows 7 0.0.0)]: Connected on
+socket /#ZNwS_jYb-Zjz-BTPAAAE with id 33459280
+07 06 2016 12:03:27.823:WARN [IE 11.0.0 (Windows 7 0.0.0)]: Disconnected (1 time
+s), because no message in 10000 ms.
+07 06 2016 12:03:27.825:ERROR [karma]: TypeError: Cannot read property 'map' of
+undefined
+at _render (C:\workspace\node_modules\karma\lib\repo
+rters\progress.js:51:26)
+at _refresh (C:\workspace\node_modules\karma\lib\rep
+orters\progress.js:55:34)
+at onBrowserComplete (C:\workspace\node_modules\karm
+a\lib\reporters\progress.js:15:21)
+at . (C:\workspace\node_modules\karma\lib
+\events.js:13:22)
+at emitOne (events.js:101:20)
+at emit (events.js:188:7)
+at Timeout._onTimeout (C:\workspace\node_modules\kar
+ma\lib\browser.js:50:15)
+at tryOnTimeout (timers.js:224:11)
+at Timer.listOnTimeout (timers.js:198:5)
+TypeError: Cannot read property 'map' of undefined
+at _render (C:\workspace\node_modules\karma\lib\repo
+rters\progress.js:51:26)
+at _refresh (C:\workspace\node_modules\karma\lib\rep
+orters\progress.js:55:34)
+at onBrowserComplete (C:\workspace\node_modules\karm
+a\lib\reporters\progress.js:15:21)
+at . (C:\workspace\node_modules\karma\lib
+\events.js:13:22)
+at emitOne (events.js:101:20)
+at emit (events.js:188:7)
+at Timeout._onTimeout (C:\workspace\node_modules\kar
+ma\lib\browser.js:50:15)
+at tryOnTimeout (timers.js:224:11)
+If I remove Chrome from the list of browsers in karma.conf.js, then the tests run successfully in Firefox.:—
+2016-06-13T10:57:22Z∏Looks like in https://github.com/karma-runner/karma/blob/v0.13.22/lib/reporters/progress.js#L51 this._browsers is undefined instead of  [] when no browsers have been spawned sometimes.:”
+2016-10-14T14:18:55Z∫Just came across this bug as well. Weirdly enough, this started happening once I turned autoWatch to false.
+Here's my config:
+var _ = require('lodash');
+var webpackCommonConfig = require('./webpack.common.js');
+
+module.exports = function(config) {
+  config.set({
+    basePath: 'tests',
+    frameworks: ['jasmine'],
+    files: [
+      '../src/utils/intl_polyfill.js',
+      '*.spec.js'
+    ],
+    exclude: [],
+    preprocessors: {
+      '../src/*.js': ['webpack'],
+      '../src/**/*.js': ['webpack'],
+      '../locales/*.js': ['webpack'],
+      '*.spec.js': ['webpack'],
+      '*Data.js': ['webpack']
+    },
+    webpack: _.merge({
+      devtool: 'inline-source-map'
+    }, webpackCommonConfig),
+    webpackMiddleware: {
+      stats: 'errors-only'
+    },
+    reporters: ['progress'],
+    port: 9876,
+    colors: true,
+    logLevel: config.LOG_ERROR,
+    autoWatch: false,
+    browsers: ['PhantomJS'],
+    singleRun: false,
+    concurrency: Infinity
+  })
+}:@
+2016-11-25T14:57:49Z(ping
+any progress with autoWatch: false?:ƒ
+2016-11-28T18:43:50Z´It seems like this issue is fixed for me now, when using autoWatch. I have the following versions of the relevant packages:
+node_modules/karma-chrome-launcher/package.json
+  "version": "2.0.0"
+node_modules/karma-webpack/package.json
+  "version": "1.8.0"
+node_modules/karma/package.json
+  "version": "1.3.0"
+
+karma and karma-webpack had updates since the version I set on my package.json so I assume one of them fixed the issue.:≠
+2017-01-01T23:07:20ZîI have simple use case which reproduce this problem on macOs:
+mkdir foo
+cd foo
+node --version #v7.3.0
+npm install karma@1.3.0
+npm install -g karma-cli
+karma init # Chrome, jasmine
+npm install jasmine-core
+
+
+# karma-chrome-launcher@2.0.0
+# karma-jasmine@1.1.0
+
+karma start
+
+# In opened Chrome reload page (cmd+r) 
+karma.conf.js
+Note:
+If onRunStart does not called then this._browser is not initialized, but when you reload page in chrome render or remove methods are called so they throw exception because this._browsers is undefined:P
+2017-10-20T19:58:58Z8Was this ever resolved? Same issue. Why was this closed?:7
+2017-12-10T20:19:29ZI did not found decision too :(:È
+2017-12-10T20:36:23Z–@wvicioso @Dok11 we fixed javascript exception in karma
+
+"TypeError: Cannot read property 'map' of
+undefined]TypeError: Cannot read property 'map' of undefined"
+
+It doesn't fix the reason why Chrome doesn't start because in 90% it's environment problem or problem in karma-chrome-launcher.
+Did you run karma with log level equals debug?≈À2013-11-30T18:11:06Z"2013-12-01T04:41:53Z*˝the css content was process with preprocessor, such as karma-less-preprocessor
+karma/lib/preprocessor takes '.js' as suffix of file.contentPath in line 63.
+karma/lib/middleware/common line 39, mime.lookup with file.contentPath
+as the result of above, a requestUrl like /base/css/a.css, the content-type will response as 'application/javascript'
+
+i'll send a pull request to fix it.2G
+(c9a64d2f1a94c0a7dab2fcde79696c139d958c572013-12-01T04:41:37Z46647:m
+2013-11-30T20:58:39ZUYep, we should use file.path (which is the path that the file is being served under).:í
+2013-11-30T20:59:20ZzI actually already changed that in my local branch (while working on caching of the preprocessed files to save FS access).:E
+2013-12-02T07:15:11Z-ok, i'm waiting for ur latest release on npm.£Ü2016-08-15T09:55:31Z"2016-08-16T11:10:26Z*Ï
+206 Partial Content is incorrectly implemented causing some video files (MP4) to fail. This is caused by the introduction of range headers in a567b6f in issue #2140
+Expected behavior
+According to RFC 2616, the byte-range-resp-spec should be (first-byte-pos "-" last-byte-pos).
+For example, if the resource is of length 1234 and the range request is for bytes 500-, the range should be 500-1233/1234
+If my resource is 229,255 bytes and I request it with:
+Range: bytes=0-
+
+I expect:
+HTTP/1.1 206 Partial Content
+Accept-Ranges: bytes
+Content-Range: bytes 0-229254/229255
+Content-Length: 229255
+
+Actual behavior
+Currently, when my resource is 229,255 bytes and I request it with karma v1.2.0:
+Range: bytes=0-
+
+I am receiving:
+HTTP/1.1 206 Partial Content
+Content-Range: bytes 0-229255/229255
+
+Few things are wrong here:
+
+Content-Range should be bytes 0-229254/229255 instead of 0-229255/229255
+Should return Accept-Ranges
+We should return Content-Length since it's recommended for application to implement according to RFC 2616.
+
+Also I recommend we use range-parser for this.
+Environment Details
+Introduced in Karma v1.2.0. In v1.1.2, this is fine.
+Fails in Chrome 52 and Chrome 53, in Mac OS X, Windows and Ubuntu.
+Steps to reproduce the behaviour
+
+Use files to serve a small MP4 asset in Chrome 52 or Chrome 53.
+Asset will not load as range headers are wrong, this causes video not to play2H
+(8b1b4b1052925e15770a0d4017a6ebc9ea89c0ed2016-08-16T05:46:57Z262105:7
+2016-08-16T04:30:42Z@dignifiedquire I'll take this.ò
+
+Ë2013-07-03T08:36:29Z"2013-10-22T02:13:24Z*¸Karma version: 0.8.6
+OS: Windows 7 64 bit
+Consider the following structure of my project:
+<project-root>
+‚îÇ   karma.conf.js
+‚îÇ
+‚îú‚îÄ‚îÄ‚îÄapp/
+‚îÇ       app.html
+‚îÇ       app.js
+‚îÇ
+‚îî‚îÄ‚îÄ‚îÄspec/
+        spec.js
+
+And the following karma.conf.js:
+basePath = '';
+files = [
+  MOCHA,
+  MOCHA_ADAPTER,
+  'app/*.js',
+  {pattern: 'app/*.html', included: false, served: true, watched: false},
+  'spec/*.js'
+];
+reporters = ['progress'];
+port = 9876;
+runnerPort = 9100;
+colors = true;
+logLevel = LOG_INFO;
+autoWatch = true;
+browsers = ['Chrome'];
+captureTimeout = 60000;
+singleRun = false;
+
+If I edit and save app/app.html while having karma watching my files, my tests will run even though the file pattern for html files states that the watcher should ignore them.2G
+(6a272aa5763eb0c728b76adc3b12bb12abc1aaca2013-10-22T02:12:58Z46647:ú
+2013-07-04T05:15:36ZÉ@joakimkarlsson thanks for reporting this. I confirm this is a bug.
+
+chokidar does not watch patterns, but directories, therefore karma watches common parent directly of each pattern. We need to check the patterns inside "ignore" function (https://github.com/karma-runner/karma/blob/master/lib/watcher.js#L47). Because fileList does not care about watched/non watched (which is correct).Œ	ÿ2013-08-30T15:15:02Z"2013-11-17T00:27:57Z*ÎIf a file paths for items listed in files configuration section contains parentheses, the base  directory for those files is incorrectly inferred.
+Example:
+C:\path\to\my\files\something(other thing)\anotherDirectory*.js
+Base directory is inferred as:
+C:\path\to\my\files\
+instead of:
+C:\path\to\my\files\something(other thing)\anoterDirectory\
+This causes karma to watch all files in the wrong directory and may cause high CPU useage. In my case it was 80% cpu usage because it was watching 1000s of files.
+Windows 7
+Karma: 0.10.2
+The cause is the regex in function baseDirFromPattern in watch.js
+https://github.com/karma-runner/karma/blob/master/lib/watcher.js#L11
+If I knew regex better or what exactly this was doing, I would attempt to fix it.2G
+(438eb8ddbc0b82cd5ab299f6f27f5ae3cc29a20f2013-11-17T00:21:53Z46647:È
+2013-09-03T00:57:33Z–I don't understand this issue.
+Why should ...\x\something(other thing)*.js produce base directory ...\x\something(other thing)*\ ? That makes no sense to me. This pattern means that any file in C:\path\to\my\files\ that matches something(other thing)*.js is matched. Therefore the whole C:\path/to\my\files\ directory has to be scanned.:œ
+2013-09-03T02:16:00Z∂doh! my \ before *.js disappeared. Edited issue to be more clear. Previously there was a \ before *.js but I added anotherDirectory to make the example more clear. I hope this helps!:√
+2013-10-11T14:30:23Z™I have run into this or a similar problem. I have a very simple karma project generating very high CPU loads, but only when the project is located in a deep directory path, including space and parantheses.
+Relevant Karma config:
+files: [
+'test/Spec.js', // Contains 1 test file
+'src/.js' // Contains 1 js-file
+],
+Running with --log-level debug reveals that Karma is watching lots of files in other directories on my hard drive.
+I am running the Karma projects in these two locations:
+
+d:\Temp\karmatest-simple
+d:\Dropbox\LenovoT410 (1)\a\b\c\d\karmatest-simple\
+
+Number one works fine, number two gives huge CPU load. This suggests that something with the path causes the problem. My gut feeling is that the space rather than parantheses is the problem.
+Please tell if more details are required.
+edit: spelling:ﬂ
+2013-11-17T00:20:54Z∆Ok, I see now. Yep, the parentheses is the problem. I didn't know that just parenthesis does not mean any special glob/fnmatch pattern, so we can actually get parentheses to work.
+I'm working on it.∏√2017-03-25T09:29:08Z"2017-04-05T16:36:46Z*‡I wrote this feature originally and haven't had time to come back and address this issue until now. See #2119 (comment).
+
+Fixes #2626
+The main purpose of the formatError function, per the docs, is to trim down the stack trace.  However, no matter the return value configured, a new line is always appended.  This means even when lines are removed a blank new line is still added.  This results in large, blank, stack traces:
+
+This PR simply returns the exact value the user has configured in their formatError function, without appending a newline to it.  This allows for removing lines from the stack trace:2I
+(17c2c43a7ce3f6346ddffdeb2b283f286e9e4bb82017-04-05T16:36:46Z5067638:>
+2017-03-25T22:28:48Z&@levithomason can you fix tests
+Thanks:Y
+2017-03-25T22:31:20ZA@levithomason also it would be nice to write test on this problem:l
+2017-03-26T06:19:54ZTSure thing.  This was an in browser patch.  I'll come back and give a proper update.:º
+2017-03-27T07:28:39Z£I've updated the failing test.  I went to add an additional test, however, it will only duplicate the existing test as it will ensure no new line is added to the config.formatError output.  Instead, I opted to change the test description to reflect the exact error result should be returned.:
+2017-03-27T10:34:01ZLGTM:∂
+2017-03-27T20:40:40ZùOdd failures on CI.  Can someone retrigger please?
+Travis:
+Just shows an infinite loading spinner for me...
+AppVeyor failure
+
+npm ERR! code EBADF
+npm ERR! errno -4083
+npm ERR! syscall fstat
+npm ERR! EBADF: bad file descriptor, fstat
+npm ERR! A complete log of this run can be found in:
+npm ERR!     C:\Users\appveyor\AppData\Roaming\npm-cache_logs\2017-03-27T05_29_49_919Z-debug.log
+Command exited with code -4083:C
+2017-03-27T20:51:20Z+I should note that npm test passes locally.:{
+2017-03-29T07:36:10Zc@maksimr would you happen to have rights to retry tests on CI?  Perhaps without cache if available?:L
+2017-03-29T10:24:14Z4@levithomason only on travis and I have restarted it:(
+2017-03-29T10:24:51ZI appreciate it.:á
+2017-03-30T10:12:50Zo@levithomason can you rebase onto master please, then all linting issues should be fixed and ci hopefully happy:•
+2017-03-30T22:25:42ZåRebased and pushed.  Lint and tests pass locally.
+Travis looks like it will pass.
+AppVeyor node 0.12
+  1) launchers/process.js flow start -> timeout -> 3xrestart -> failure:
+     Uncaught AssertionError: expected spy to have been called with arguments \usr\bin\browser, ["http://localhost/?id=fake-id"]
+      at test\unit\launchers\process.spec.js:234:42
+      at [object Object]._onTimeout (node_modules\lodash\index.js:1773:43)
+  
+Warning: Task "mochaTest:unit" failed.ÔøΩ Use --force to continue.
+Aborted due to warnings.:C
+2017-04-01T09:16:22Z+I restarted appveyor lets see if that helps:Q
+2017-04-01T19:22:34Z9Looks like we're good to go here. Thanks for the restart.:,
+2017-04-02T23:23:51Z@dignifiedquire bump:!
+2017-04-05T16:36:53Z	Thank you:
+2017-04-05T17:24:34ZNice:E
+2017-04-05T18:51:31Z-Awesome, thanks much. Can't wait to use this.°2016-06-27T14:47:09Z"2017-01-14T20:42:03Z*∆Actual behavior
+I had a test that ultimately boiled down to the following Jasmine expectation:
+expect('http://www.google.com/base/').toEqual('http://www.example.com/base/');
+
+As the failure message, I get:
+Expected '' to equal ''
+
+This was quite puzzling and a pain to isolate to karma in my real scenario.
+Expected behavior
+Clear message as given by Jasmine directly:
+Expected 'http://www.google.com/base/' to equal 'http://www.example.com/base/'.
+
+I think this issue relates to the URL_REGEXP in Karma's reporter.js but I haven't dived deep enough to follow what's going on there.
+Environment Details
+
+Karma version (output of karma --version):
+
+Karma version: 1.1.0
+
+Relevant part of your karma.config.js file
+
+Minimal jasmine config.
+Steps to reproduce the behaviour
+
+Checkout https://github.com/mthx/karma-error-reporting-issue
+npm install
+npm run test-jasmine
+npm run test-karma
+Note the failures from the latter have empty strings as URLs in the error message2I
+(fbbeccf936a08e5296ffbe41e02c82c4a014c80e2017-01-14T20:42:02Z1703387:c
+2016-12-06T13:23:25ZKWhat is happening here is that karma is truncating the strings before base/:Ú
+2016-12-10T06:47:01ZŸ@dignifiedquire what are your thoughts on perhaps making a breaking change to choose a unique name for the base url, such as karma-base/? It would be much less likely to conflict than a common name like base is alone.:ä
+2016-12-11T13:19:39ZÒIf we are switching we should be switching to something more specific, like__karma__base__/. But to fix this issue we should be able to adjust the matcher, such that it only replaces inside urls where the host is the same as config.hostname.:¡
+2016-12-11T15:44:21Z®So maybe a configurable option like config.basename would work?
+Edit: oh, I think I misunderstood - basically fix the regex. I think I read this at 6 am and misread it.

@@ -1,0 +1,5 @@
+ID;Test command;Coverage command;Node version;Pre-command;Post-command
+1;node_modules/.bin/mocha --reporter json lib/**/*.spec.js *.spec.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/mocha -- --reporter json lib *.spec.js;6;npm install istanbul;
+2;node_modules/.bin/mocha --reporter json *.spec.js lib/**/*.spec.js service-tests/**/*.spec.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/mocha -- --reporter json *.spec.js lib/**/*.spec.js;6;npm install istanbul;
+3;node_modules/.bin/mocha --reporter json *.spec.js lib/**/*.spec.js services/**/*.spec.js service-tests/**/*.spec.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/mocha -- --reporter json *.spec.js lib/**/*.spec.js;8;npm install istanbul;
+4;node_modules/.bin/mocha --reporter json *.spec.js lib/**/*.spec.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/mocha -- --reporter json *.spec.js lib/**/*.spec.js;6;npm install istanbul;

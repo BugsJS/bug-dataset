@@ -1,0 +1,13 @@
+ID;Test command;Coverage command;Node version;Pre-command;Post-command
+1;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+2;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+3;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+4;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+5;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+6;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+7;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+8;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+9;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+10;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+11;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;
+12;node_modules/.bin/_mocha --reporter json test/index.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json test/index.js;;;

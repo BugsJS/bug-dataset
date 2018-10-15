@@ -1,0 +1,434 @@
+
+	NodeRedis
+node_redis˚,¶	2017-01-13T18:17:13Z"2017-01-15T13:25:51Z*Ö,Hi,
+To reproduce this problem we need to run:
+
+one subscribe client which listens to 10000 channels
+twenty publish clients which publish to that 10000 channels quite a big messages
+
+subscribe.js
+let redis = require('redis');
+
+let sub = redis.createClient(6379, 'localhost');
+
+sub.on('error', function (err) {
+    console.error('Sub client error: ', err);
+});
+sub.on('end', function () {
+    console.log('Sub client ending');
+});
+sub.on('reconnecting', function () {
+    console.log('Sub client reconnecting ');
+});
+sub.on('ready', function () {
+    console.log('sub ready');
+
+});
+sub.on('message', function(channel, message) {
+    try {
+        let t = JSON.parse(message);
+        console.log('Got message in channel: ' + channel, t.message_id);
+    } catch(e) {
+        console.log('Got message in channel: ' + channel);
+    }
+});
+
+for (let i = 0; i < 10000; i++) {
+    sub.subscribe('message_' + i, function(error) {
+        if (error) {
+            console.error('Unable to subscribe', error);
+        }
+    });
+}
+publish.js
+let redis = require('redis');
+
+let pub = redis.createClient(6379, 'localhost');
+pub.on('error', function(err) {
+    console.error('Pub client error: ', err);
+});
+pub.on('end', function () {
+    console.error('Pub client ending');
+});
+pub.on('reconnecting', function () {
+    console.log('Pub client reconnecting');
+});
+pub.on('ready', function () {
+    console.log('pub ready');
+});
+
+for (let i = 0; i < 10000; i++) {
+    pub.publish('message_' + i, JSON.stringify({
+        message_id: process.pid + '_' + i,
+        text: 'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! ' +
+        'Very big, large, sizable, substantial, great, huge, immense, enormous, extensive, colossal message! '
+    }));
+}
+Steps
+
+Run all needed processes
+
+const spawn = require('child_process').spawn;
+
+let sub =  spawn('node', ['subscribe.js'], {stdio: ['ignore', 'inherit', 'inherit']});
+
+for (let i =0; i <20; i++ ) {
+    let pub =  spawn('node', ['publish.js'], {stdio: ['ignore', 'ignore', 'ignore']});
+}
+
+
+Once we get error on Redis
+# Client id=280 addr=127.0.0.1:62272 fd=30 name= age=2 idle=0 flags=N db=0 sub=10000 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=1636 omem=33555360 events=rw cmd=subscribe scheduled to be closed ASAP for overcoming of output buffer limits.
+
+
+As the result: Sub client get end event and try to reconnect but hangs.
+
+
+Reason
+During the research I found out that redis-parser instance(this.reply_parser in index.js) contains buffer  with corrupted message e.g.
+*3
+$7
+message
+$10
+message_26
+$4858
+
+Next data from stream is response for info command that initiates by Sub client during reconnect
+$2140
+# Server
+redis_version:3.2.6
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:d7230ef0a2976d7c
+redis_mode:standalone
+os:Linux 4.4.17-boot2docker x86_64
+arch_bits:64
+multiplexing_api:epoll
+gcc_version:4.9.2
+process_id:1
+run_id:a8efde8774bbde62cdbb1deddf59
+....
+
+But no one clears redis-parser buffer on recconnect also redis-parser can't process buffer with corrupted message so Sub client hangs.
+
+Version: node_redis v.2.6.4 and Redis official v3.2.6 docker image without specific configuration(https://hub.docker.com/_/redis/)
+Platform:  Node.js v6 on Windows 72@
+(db0e8c53cc7a68e65b591dc2e457b5a7e7f5065b2017-01-15T13:23:20Z‡˝2015-10-18T03:06:32Z"2015-10-18T16:59:09Z*¯In the most recent closed PR, defaulting of options to {} was removed. (see https://github.com/NodeRedis/node_redis/pull/891/files#diff-168726dbe96b3ce427e7fedce31bb0bcL36)
+This causes the following line to fail when options is not supplied:
+JSON.parse(JSON.stringify(options))
+The error looks like..
+undefined:1
+undefined
+^
+SyntaxError: Unexpected token u
+    at Object.parse (native)
+    at new RedisClient (/Users/tfemiani/src/platapi/api-cart/node_modules/fakeredis/node_modules/redis/index.js:39:20)2@
+(304abe431828b1931c32187d4888f460ba99f8c52015-10-18T16:58:34Z:'
+2015-10-18T03:06:58Z@BridgeAR - FYI:∆
+2015-10-18T15:49:03Z≠True, I did not take into account that someone might not use the redis own .createClient function. Thanks for pointing that out. I'll release a new version in a few minutes.Ñ¡2016-06-15T23:40:49Z"2016-06-16T12:29:21Z*éThis was discovered while using faye-redis.js. It uses a transaction to read messages from a queue and then delete the queue:
+emptyQueue: function(clientId) {
+    if (!this._server.hasConnection(clientId)) return;
+
+    var key   = this._ns + '/clients/' + clientId + '/messages',
+        multi = this._redis.multi(),
+        self  = this;
+
+    multi.lrange(key, 0, -1, function(error, jsonMessages) {
+      if (!jsonMessages) return;
+      var messages = jsonMessages.map(function(json) { return JSON.parse(json) });
+      self._server.deliver(clientId, messages);
+    });
+    multi.del(key);
+    multi.exec();
+  },
+
+This code runs without complaint, it even retrieves the values, but it ignores the callback function that delivers the messages, and then it deletes the keys. So this fundamentally breaks the code and prevents Faye from delivering messages.
+In the working version, (Up to 2.6.0-2) the lrange() callback is executed and the output from lrange() is captured and sent to the exec() callback
+  >  multi = this._redis.multi()
+  >  multi.lrange(key, 0, -1, function(error, msgs) { console.log("msgs:\n" + JSON.stringify(msgs, null, 2))})
+  >  multi.exec(function (err, replies) {
+  ...       console.log(replies);
+  ...   });
+  true
+  > msgs:
+  [
+    "message A for 123",
+    "message B for 123",
+    "message C for 123"
+  ]
+  [ [ 'message A for 123', 'message B for 123', 'message C for 123' ] ]
+
+Now in the broken version (2.6.1), the lrange() callback is ignored but the output from lrange() is still captured and sent to the exec() callback
+ >  multi = this._redis.multi()
+  >  multi.lrange(key, 0, -1, function(error, msgs) { console.log("msgs:\n" + JSON.stringify(msgs, null, 2))})
+  >   multi.exec(function (err, replies) {
+  ...       console.log(replies);
+  ...   });
+  true
+  > [ [ 'message A for 123', 'message B for 123', 'message C for 123' ] ]
+
+In the working version, you can look at multi.queue and see the queued commands
+multi.queue
+[ [ 'MULTI' ],
+[ 'lrange', '/clients/123D/messages', 0, -1, [Function] ] ]
+In the non-working version you'll see this instead:
+multi.queue
+{ [String: '[object Object]'] _capacity: 16, _length: 1, _front: 0 }
+Other details:
+node 0.12.7
+Redis server v=3.2.0 sha=00000000:0 malloc=jemalloc-4.0.3 bits=64 build=f449541256e7d446
+Platform OSX, Boot2Docker
+Thanks2@
+(de0a9628aabb9daecdccc898d10b375ab1b985662016-06-16T12:29:00Z∏%¶2014-10-30T11:59:05Z"2015-11-23T11:33:05Z*¸I noticed that getting big values take more time than it should. Worse, it looks like time of get grows expotentially with size of value.
+I wrote following script to test it:
+var redis = require('redis');
+var fs = require('fs');
+
+var key = Date.now().toString();
+var data = fs.readFileSync('./data.bin'); // big file (25-100MB)
+
+var client = redis.createClient(6379, 'localhost');
+
+client.on('connect', function () {
+    var time = Date.now();
+    client.set(key, data, function (err) {
+        console.log('set time: %s', Date.now() - time);
+        time = Date.now();
+        client.get(key, function (err, data) {
+            console.log('get time: %s', Date.now() - time);
+            process.exit();
+        });
+    });
+});
+When I pass to it 25MB of data, it takes about 6 seconds to get value from local redis, for 50MB it takes about 25 seconds and for 100MB it takes near 100 seconds.2@
+(06a1bdd7b0bf72d46c71d92e9ca20d12f32e83bb2015-11-23T11:30:35Z:C
+2014-10-30T12:08:22Z+I have the same issue. Can any one help me?:¸
+2014-10-30T21:23:30Z„I've been noticing long delays for big data as well but always assumed it has something to do with the JSON parsing it was doing. But apparently it takes this long for Redis to return the data? Interesting issue to investigate!:y
+2014-10-31T11:55:03ZaThanks dirkbonhomme for confirming the issue.
+Do you have any workaround or fix for this problem?:Å
+2014-10-31T17:07:30ZËInteresting! This is definitely work investigating.
+TODO:
+
+ make sure it isn't doing anything to the buffer going in/out
+ determine if it is in the parser or waiting for redis
+ compare vs hiredis (which can be faster for large data):≈
+2015-02-19T18:25:27Z¨My results...
+
+
+
+Using Hiredis
+Size
+Write (ms)
+Read (ms)
+
+
+
+
+No
+25 MB
+22
+4114
+
+
+No
+50 MB
+39
+15128
+
+
+Yes
+25 MB
+24
+1026
+
+
+Yes
+50 MB
+38
+2007
+
+Looks pretty linear with Hiredis.:‘
+2015-02-25T07:08:47ZªThanks for digging into this. I have confirmed these results, and there is not an easy way to fix this with the JS parser. It's certainly not impossible to fix in the JS parser, but it'll be some delicate surgery to do without slowing down or breaking the common case. I guess this is a good reason to keep hiredis working, at least until we can fix it.
+For the curious, here's a flame graph of the test program above:
+http://ranney.com/redis.svg
+This program spends all of its time copying buffers around. hiredis wins because it calls JS back with a single 50MB result.:«
+2015-02-25T07:19:28ZÆI've done a lot of benchmarking as well and have seen this is an issue with the parser. I've played with some things to try and fix it but it would be an api change for sure.:
+2015-06-23T17:18:05Züëç:Ÿ
+2015-08-15T21:53:19Z¿In order to better support this project and its new group of collaborators under a new org we are trying to clean up and close issues older than 6 months. Your issue may have been fixed since the issue was open, however, if you are still experiencing a problem please re-open this issue and we will label it accordingly.:X
+2015-09-13T04:49:48Z@Reopening as the js parser is still not handling big values well:˘
+2015-10-20T11:03:48Z‡I analyzed the parser in depth and the cause of the problems seems to be the following:
+If we have data bigger than 2^16 we'll have n chunks and the parser is going to concat n times creating a new buffer each time that increases in size and it's also parsing the whole buffer each time a new chunk is incoming (=> both leading to an increase in time per additional chunk, so it's exponential).
+Also the stack might be getting bigger with each stack (each chunk will throw on top of each other) but I doubt that this is very substantial.
+To fix the parser it has to be refactored in a way that we parse each chunk only once, cache the chunks in the meantime and concat them if we found the last chunk. This is likely not trivial though.:U
+2015-10-25T23:05:48Z=I think rvagg/bl module could be a solution for this problem.:÷
+2015-10-26T17:37:52ZΩ@qzb thx for the suggestion but this can't be used in our case. The stream is kept open all the time and we have no "end" besides closing the connection explicitly or losing the connection.:k
+2015-10-26T19:36:50ZSMaybe I'm missing something but I think I just fixed this bug using bl module: #900:õ
+2015-11-08T23:16:00ZÇ@qzb I found a fix that works ok for now (ff857f9) but I'm planing on rewriting the parser from scratch. The parser could be faster if rewritten and handling big values will be a lot faster than with this fix too.
+Would you be so kind and give the fix a try?:å
+2015-11-23T11:35:01ZtFinally the issue is fixed :)
+From now on the js parser handles big return values just as fast as the hiredis parserÀ´2013-04-27T15:32:45Z"2015-09-15T03:57:03Z*É
+I'd like to use the AUTH callback to be notified of invalid passwords, however instead of passing the callback and error.
+            if (err.toString().match("LOADING")) {
+                // if redis is still loading the db, it will not authenticate and everything else will fail
+                console.log("Redis still loading, trying to authenticate later");
+                setTimeout(function () {
+                    self.do_auth();
+                }, 2000); // TODO - magic number alert
+                return;
+            } else {
+                // INVALID PASSWORD PATH ENTERS HERE AND RETURNS
+                return self.emit("error", new Error("Auth error: " + err.message));
+            }
+// THE FOLLOWING CODE IS NOT EXECUTED
+        if (res.toString() !== "OK") {
+            return self.emit("error", new Error("Auth failed: " + res.toString()));
+        }
+        if (exports.debug_mode) {
+            console.log("Auth succeeded " + self.host + ":" + self.port + " id " + self.connection_id);
+        }
+        if (self.auth_callback) {
+            self.auth_callback(err, res);
+            self.auth_callback = null;
+        }
+Any chance of changing the above to so it calls self.auth_callback if present on any error? Happy to fork and send a pull request.
+Steve2I
+(e24f056b2d88ea54b689f6bb8f290a9a91be573f2015-09-15T03:57:00Z8822573:w
+2013-04-27T16:20:46Z_Good catch -- this definitely looks like a bug. It would be awesome if you sent a pull request!:Ü	
+2013-04-28T08:38:36ZÌLooks like the change is more complicated than I first appreciated. It's easy enough to restructure the code so auth_callback is still called on error, but if the auth_callback runs before the onReady check any redis commands sent within callback fail (unless the callback set the "secret" send_anyway command).
+Moving the auth_callback after the onReady check presumably breaks the original intent, and might lead to undesired side-effects since the "connect" event would be emitted before the auth had been performed.
+There also seems to be some instances of synchronous code running after asynchronous code, that might result in indeterministic behaviour. e.g.
+        // Contents of the callback is potentially async
+        if (self.auth_callback) {
+            self.auth_callback(err, res);
+            self.auth_callback = null;
+        }
+
+        // If the contents of the callback is async might the following code run before the callback completes?
+        self.emit("connect");
+        if (self.options.no_ready_check) {
+            self.on_ready();
+        } else {
+            self.ready_check();
+        }
+Any thoughts?:Ú
+2013-05-08T22:53:45ZŸHow about doing
+return self.auth_callback(new Error("Auth error: " + err.message));
+instead of
+return self.emit("error", new Error("Auth error: " + err.message));
+I think is a simple way of executing the auth callback:P
+2015-09-04T11:37:41Z8Reopened as this is not fixed yet and seems to be a bug.Ú$ë2015-10-30T19:23:28Z"2015-11-18T03:00:36Z*ÇHi,
+I have a local version of redis (2.8.19) running on local and listening to a socket. Upgrading to the latest node_redis build outputs this:
+Error: Redis connection lost and commands aborted in uncertain state. They might have been processed.
+    at RedisClient.connection_gone (/Users/sasanhezarkhani/MyWork/node_modules/redis/index.js:547:17)
+    at Socket.<anonymous> (/Users/sasanhezarkhani/MyWork/node_modules/redis/index.js:125:14)
+    at Socket.g (events.js:180:16)
+    at Socket.emit (events.js:95:17)
+    at Pipe.close (net.js:466:12)
+
+I'm going to try and see what the issue is, but it started after upgrading from 2.2.5 to 2.3.02@
+(241e156499a90c0ea64edc505d37fae918a704bd2015-11-18T02:43:43Z:ñ
+2015-10-30T22:58:14Z˝@shezarkhani do you have a reproducible test for me? The error is indeed new but needed: a command was fired and the connection was lost before redis returned an answer. Therefor node_redis can't tell what happend with that command and returns an error.:)
+2015-11-02T12:57:18ZPing @shezarkhani:õ
+2015-11-04T21:26:38ZÇ@BridgeAR Sorry, I didn't notice your comments here. I'll try and write a test that makes it happen consistently and let you know.:∏
+2015-11-05T19:36:32Zü@BridgeAR seems like it has something to do with big buffers and using a multi. Here is a part of my debug log. Note that there is a lot more of those hsets.
+...
+$4
+hset
+) has Buffer arguments
+send_command: buffer send 34 bytes
+send_command: buffer send 10 bytes
+send_command: buffer send 81805 bytes
+Send command (*4
+$4
+hset
+) has Buffer arguments
+send_command: buffer send 34 bytes
+send_command: buffer send 6 bytes
+send_command: buffer send 129418 bytes
+Send localhost:6379 id 11: *1
+$4
+exec
+
+Net read function () {
+  if (this._handle && this._handle.getsockname) {
+    return this._handle.getsockname();
+  }
+  return null;
+} id undefined
+Redis connection to localhost:6379 failed - write Unknown system errno 41
+2015-11-05 10:33:57.271 - error: Uncaught Exception: Error: Redis connection to localhost:6379 failed - write Unknown system errno 41
+    at errnoException (net.js:905:11)
+    at Object.afterWrite (net.js:721:19:∂
+2015-11-09T00:41:43Zù@shezarkhani would you be so kind and provide me some code that you use? And the error you just posted is another one than the one you posted the first time?:É
+2015-11-11T06:11:53ZÍ(accidentally removed my last comment)
+Hi @BridgeAR,
+Sorry for going away again. This is kind of like the code we have that generates that error. Note that the loops are there to show that this happens with big payloads. (We don't actually do this)
+var redis = require('redis');
+var step = require('step');
+var zlib = require('zlib');
+
+var redisClient = redis.createClient('/tmp/redis.sock', {
+  detect_buffers: true
+});
+
+// Some random object created from http://beta.json-generator.com/
+var test_obj = {"_id":"5642c4c33d4667c4a1fefd99","index":0,"guid":"5baf1f1c-7621-41e7-ae7a-f8c6f3199b0f","isActive":true,"balance":"$1,028.63","picture":"http://placehold.it/32x32","age":31,"eyeColor":"green","name":{"first":"Shana","last":"Long"},"company":"MANGLO","email":"shana.long@manglo.us","phone":"+1 (926) 405-3105","address":"747 Dank Court, Norfolk, Ohio, 1112","about":"Eu pariatur in nisi occaecat enim qui consequat nostrud cupidatat id. Commodo commodo dolore esse irure minim quis deserunt anim laborum aute deserunt et est. Quis nisi laborum deserunt nisi quis.","registered":"Friday, April 18, 2014 9:56 AM","latitude":"74.566613","longitude":"-11.660432","tags":[7,"excepteur"],"range":[0,1,2,3,4,5,6,7,8,9],"friends":[3,{"id":1,"name":"Schultz Dyer"}],"greeting":"Hello, Shana! You have 5 unread messages.","favoriteFruit":"strawberry"};
+
+// To demonstrate a big payload for hash set field values, let's create a big array
+var test_arr = [];
+for (var a=0;a<80;a++) {
+  var new_obj = JSON.parse(JSON.stringify(test_obj));
+  test_arr.push(new_obj)
+}
+
+var json = JSON.stringify(test_arr);
+step(
+  function zip() {
+    zlib.deflate(new Buffer(json), this);
+  },
+
+  function commit(err, buffer) {
+    if (err) {
+      console.log("ERROR", err);
+      process.exit(1);
+    }
+
+    var multi = redisClient.multi();
+    multi.del('SOME_KEY');
+
+    for (var i=0;i<100;i++) {
+      multi.hset('SOME_KEY', 'SOME_FIELD'+i, buffer);
+    }
+
+    multi.exec(function done() {
+      console.log("DONE...");
+      process.exit(0);
+    });
+  }
+);
+However, after running this, I noticed that if I call the exec function in the nextTick I cannot reproduce the error.:`
+2015-11-18T03:01:21ZH@shezarkhani would you be so kind and verify that the issue is fixed? :)::
+2015-11-18T03:24:42Z"@BridgeAR üëç Thanks! It's fixed.„≥2014-12-08T13:03:54Z"2015-09-18T02:44:54Z*äIf you use channel names with spaces, client.subscribe('foo bar') works fine, but after a reconnection, only foo is resubscribed on redis.2G
+(97db227a8d2098f82472b08e107e02532e73616d2015-09-18T02:44:29Z84478:Ÿ
+2015-08-15T21:36:52Z¿In order to better support this project and its new group of collaborators under a new org we are trying to clean up and close issues older than 6 months. Your issue may have been fixed since the issue was open, however, if you are still experiencing a problem please re-open this issue and we will label it accordingly.

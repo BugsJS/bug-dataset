@@ -1,0 +1,10 @@
+ID;Test command;Coverage command;Node version;Pre-command;Post-command
+1;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+2;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+3;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+4;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+5;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+6;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+7;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+8;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;
+9;node_modules/.bin/mocha --reporter json test/*.test.js;istanbul cover --report json-summary node_modules/.bin/_mocha -- --reporter json -t 15000 test/*.test.js;;;

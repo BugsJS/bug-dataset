@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package bugjs;
+
+message Comment {
+  string created_at = 1;
+  string comment = 2;
+}
+
+message Commit {
+  string hash = 1;
+  string commit_date = 2;
+  string author = 3;
+}
+
+message Bug {
+  int32 id = 1;
+  int32 orig_id = 2;
+  string created_at = 3;
+  string closed_at = 4;
+  string description = 5;
+  Commit fix = 6;
+  repeated Comment comments = 7;
+}
+
+message Project {
+  string user = 1;
+  string repository = 2;
+  repeated Bug bugs = 3;
+}

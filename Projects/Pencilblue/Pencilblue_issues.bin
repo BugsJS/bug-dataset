@@ -1,0 +1,47 @@
+
+
+pencilblue
+pencilblue„‘	2016-11-10T12:58:28Z"2016-11-14T21:08:20Z*°Fixes #1167
+
+ Unit tests created and pass
+ JS Docs have been updated
+
+Description:
+Added a unit test for the validation class and fixed the failing functions
+@pencilblue/owners2I
+(ae3e8e2ef655386b3d984aeb598016af7f5ea8a72016-11-14T21:08:20Z3628887:–
+2016-11-10T13:00:06Z~Coverage increased (+0.3%) to 32.657% when pulling 03b722f on dukeofsussex:validation_tests into 7aa7225 on pencilblue:master.::
+2016-11-14T21:08:29Z"Thank you for the contribution!!!!|õ2015-12-02T01:40:43Z"2015-12-02T01:43:15Z2I
+(aec8888386d9643cf1e5eca8fe482e0a6409dc1f2015-12-02T01:43:15Z3628887½«2016-06-07T01:11:26Z"2016-06-07T01:16:10Z*ÂFixes #1066
+
+ Unit tests created and pass
+ JS Docs have been updated
+
+Description:
+Fixes issue that prevents deleting custom objects of a given type by passing the type object
+@pencilblue/owners2I
+(3637bc9054f191a87d5ffa54549e5a8ea2d699102016-06-07T01:16:10Z3628887:z
+2016-06-07T01:32:18ZbCoverage increased (+0.01%) to 30.256% when pulling 0407b4d on feature/1066 into 4504fb3 on 0.6.0.Ü÷2016-09-22T21:20:11Z"2016-09-22T21:22:45Z*àFixes #1142
+
+ Unit tests created and pass
+ JS Docs have been updated
+
+Description:
+Corrects bug where the Localization.getSupported function returned a locale that was no longer registered with the system.
+@pencilblue/owners2I
+(1342984f043b91b3848869f426b1d38ea9aef6892016-09-22T21:22:45Z3628887:{
+2016-09-22T21:22:11ZcCoverage increased (+0.006%) to 32.188% when pulling 37f1605 on feature/1142 into 8538d82 on 0.7.0.|§2016-01-30T17:43:14Z"2016-01-30T17:47:34Z2I
+(176bf7d06d0b9fae4cd90acea9b834543d1a36c92016-01-30T17:47:34Z3628887|¨2016-01-30T17:44:09Z"2016-01-30T17:47:34Z2I
+(176bf7d06d0b9fae4cd90acea9b834543d1a36c92016-01-30T17:47:34Z3628887±”2016-01-01T00:57:41Z"2016-01-01T01:04:32Z*3Ensure that a media flag doesn't require attributes2I
+(533f7f6a885ec92b63b1a4fa2fb16bf40eda50822016-01-01T01:04:32Z3628887±·	2017-01-22T17:24:46Z"2017-01-23T16:12:42Z*¶â€¦ave a default "render" handler caused a failure after login
+Fixes #1206
+
+ Unit tests created and pass
+ JS Docs have been updated
+
+Description:
+See #1206
+@pencilblue/owners
+@lgenet2I
+(23ff1238366aca0caa23ff8861920ef0d14e0c3d2017-01-23T16:12:41Z3628887:z
+2017-01-22T17:26:26ZbCoverage increased (+0.005%) to 35.282% when pulling 4063666 on issue/1206 into 8a2eca3 on master.

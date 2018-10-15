@@ -1,0 +1,425 @@
+
+hexojshexo£
+û2015-01-30T03:16:51Z"2015-01-31T08:12:00Z*¢in hexo 3.0 rc1
+I have 50 posts, just 10 posts build right.
+pre post format like this
+title: ä»Žkindle3åˆ°kindle voyage
+date: 2014-11-23 17:32:53
+tags: xx
+
+---
+
+build  exception show like this
+
+pre 3.0@beta.3 tag list not right ,but post create not this problem.
+hexo 2.8.3 not this problem2H
+(33bf64a7df0dfcda4fac66ce6ac4c5b74664946e2015-01-30T18:44:52Z411425:l
+2015-01-30T06:35:56ZTIt seems the front-matter is not parsed correctly. I'll take a look at this problem.:¼
+2015-01-30T06:37:48Z£I have encountered the same problem on Windows 7 with Hexo 3.0.0-rc.1
+hexo: 3.0.0-rc.1
+os: Windows_NT 6.1.7601 win32 x64
+http_parser: 1.0
+node: 0.10.29
+v8: 3.14.5.9
+ares: 1.9.0-DEV
+uv: 0.10.27
+zlib: 1.2.3
+modules: 11
+openssl: 1.0.1h
+
+Meanwhile, this problem does not reproduce on Ubuntu 12.04 LTS. But on Ubuntu 12.04, condition helpers like is_home()/is_post() work incorrectly. All of their values evaluated to false.:]
+2015-01-30T06:43:43ZEI can't reproduce this problem on Mac too. I'll try on Windows later.:T
+2015-01-30T13:06:30Z<It seems this bug only appear on Windows. I'll fix it later.:ž
+2015-01-30T18:48:18Z…The reason of this problem is Windows uses \r\n as line ending and I forgot to escape them. This bug has been fixed in commit 33bf64a•	Ð2017-12-09T03:56:25Z"2017-12-11T20:41:53Z*åEnvironment Info
+hexo: 3.4.3
+hexo-cli: 1.0.3
+os: Darwin 17.2.0 darwin x64
+http_parser: 2.7.0
+node: 6.11.2
+v8: 5.1.281.103
+uv: 1.11.0
+zlib: 1.2.11
+ares: 1.10.1-DEV
+icu: 58.2
+modules: 48
+openssl: 1.0.2l
+For BUG
+In 3.4.3 version, TOC anchors become very strange. Now its structure has become like this:
+<li class="toc-item toc-level-2">
+  <a class="toc-link" href="#Test">
+    <span class="toc-text"></span>
+  </a>
+  <a href="#Test" class="headerlink" title="Test"></a>
+  Test
+</li>
+So, I found the problem appeared in this commit.
+But in this file, the TOC generated HTML should look like this:
+<li class="toc-item toc-level-2">
+  <a class="toc-link" href="#Test">
+    <span class="toc-text">
+      <a href="#Test" class="headerlink" title="Test"></a>
+      Test
+    </span>
+  </a>
+</li>
+I found the key place, nested a elements are forbidden in HTML syntax. see Creating anchor tag inside anchor tag.
+I think we should continue to use $(this).text(), and then use other ways to escape html entities2I
+(c8d47b8a963e94f8a36c51f825c3d204fe626bd92017-12-11T20:41:52Z3607926:/
+2017-12-10T18:08:01ZI also met this problem¹®2017-11-20T18:42:11Z"2017-11-22T02:23:29Z*;Add defaults to console command generate.
+Related to #Issue2I
+(1aa55df51a9861d45ea43c432d7d1527095940032017-11-22T02:23:28Z8968871:ž
+2017-11-20T18:44:45Z…Coverage increased (+0.0007%) to 97.224% when pulling 87412bf on bhaskarmelkani:fix/generator-defaults into 41c517d on hexojs:master.:I
+2017-11-20T20:04:33Z1Labelled bug as tests were not in sync with code.:ž
+2017-11-21T13:53:38Z…Coverage increased (+0.0007%) to 97.224% when pulling efb99f4 on bhaskarmelkani:fix/generator-defaults into 41c517d on hexojs:master.:q
+2017-11-22T02:24:54ZYThank you so much for you contribution. Hexo can't be rock without contributors like you.Ü
+š2015-10-23T18:16:42Z"2016-02-23T06:25:16Z*¹I have a image file with spaces in name (they are generated from knitr automatically so it's unpractical for me to remove the space manually every time). I put the image file under the post asset folder, use this to refer the image in markdown file:
+![plot of chunk Basic Module Detector Alert](Basic Module Detector Alert-1.png) 
+
+After post generation, the html is referring the image like this:
+<img src="Basic Module Detector Alert-1.png" alt="plot of chunk Basic Module Detector Alert"> 
+
+But the image file in public folder was renamed with all spaces replaced by %20, thus the image cannot be displayed.
+Either the image file should not be renamed, or the html should use renamed file name.2H
+(4354260c1c791f252ae919e93a4452500c92cffd2016-02-23T06:22:36Z544400:G
+2015-12-02T04:40:23Z/I think we should use renamed filename in html.:ö
+2016-02-22T09:07:21ZÝGlobal asset (/source/assets)
+File was not renamed in public and can be accessed with src with space in link.
+
+Although it works currently, we should ALWAYS urlescape links in HTML.
+
+Post asset
+Renaming the file (cat image.png -> cat%20image.png) make it accessible only with cat%2520image.png.
+This renaming should not have done in the first place.:a
+2016-02-23T06:35:27ZIUse {% asset_img "spaced asset" "spaced title" %} to access spaced asset.Ê®2014-12-01T10:57:12Z"2017-01-18T15:48:46Z*ù_config.yml
+# URL
+## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
+url: http://yoursite.com/child
+root: /child/
+
+In HTML's meta
+<meta property="og:url" content="http://yoursite.com/child/child/">2I
+(c9278111fe51d38b9c676f4fad48972f43e9d3b92017-01-18T15:48:46Z1031978:"
+2014-12-06T21:20:36Z
+Same here.:ª
+2015-02-19T17:23:21Z‘I am having the same issue. I have fixed it for now by adding a replacement for the 'url' option of open_graph in the layout/_partial/head.ejs:
+url: url.replace('/blog/blog', '/blog') - my blog is in the '/blog' subdirectory.
+<%- open_graph({twitter_id: theme.twitter, google_plus: theme.google_plus, fb_admins: theme.fb_admins, fb_app_id: theme.fb_app_id, url: url.replace('/blog/blog', '/blog')}) %>:’
+2017-01-09T08:48:00ZùSame problem here. Problem is facebook won't display images when sharing links that have the invalid og:image tags. I worked it around by commenting those out.
+But it seems the true fix really should be in node_modules\hexo\lib\plugins\helper\open_graph.js:
+  images = images.map(function(path) {
+    if (!urlFn.parse(path).host) {
+      if (path[0] !== '/') path = '/' + path;
+      return config.url + path;  // <------ THIS IS WRONG
+    }
+
+    return path;
+  });
+THe marked line above is wrong. Instead, we should use something like return currentPageUrl + path;. But I don't know how to get currentPageUrl in that file. Any hint?:é
+2017-01-09T09:05:01ZÐOK. I've fixed this with:
+
+  images = images.map(function(path) {
+    if (!urlFn.parse(path).host) {
+      if (path[0] !== '/') {
+        return urlFn.resolve(url, path);
+      }
+    }
+
+    return path;
+  });¢	ÿ2015-01-31T17:40:05Z"2015-02-05T01:28:13Z*øHi.
+I upgraded to Hexo 3.0.0-rc.2:
+hexo: 3.0.0-rc.2
+os: Darwin 14.0.0 darwin x64
+http_parser: 1.0
+node: 0.10.36
+v8: 3.14.5.9
+ares: 1.9.0-DEV
+uv: 0.10.30
+zlib: 1.2.8
+modules: 11
+openssl: 1.0.1l
+
+paginator helper only outputs 2 pages with index 0, and links are all empty.
+The following code block is what I invoke paginator in my template:
+{% if not is_post() and (page.prev || page.next) %}
+  <div class="pagination">
+    {{ paginator({prev_text: '&laquo;', next_text: '&raquo;'}) }}
+  </div>
+{% endif %}2H
+(d46f637fab7108340c5fb1a674d2191caac639222015-02-03T12:23:19Z411425:*
+2015-02-02T12:50:04ZI'll fix it later.³Ì2015-03-10T06:43:20Z"2015-03-12T02:17:14Z*ƒWhen I run hexo new 12345or hexo new "12345", I got the same error message:
+FATAL Something's wrong. Maybe you can find the solution here: http://hexo.io/docs/troubleshooting.html
+TypeError: str must be a string!
+    at module.exports (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/hexo-util/lib/slugize.js:9:38)
+    at Post.create (/Users/xxxxx/Documents/blog/node_modules/hexo/lib/hexo/post.js:50:15)
+    at Hexo.newConsole (/Users/xxxxx/Documents/blog/node_modules/hexo/lib/plugins/console/new.js:43:20)
+    at Hexo.tryCatcher (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/util.js:24:31)
+    at Hexo.<anonymous> (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/method.js:15:34)
+    at /Users/xxxxx/Documents/blog/node_modules/hexo/lib/hexo/index.js:192:9
+    at tryCatcher (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/util.js:24:31)
+    at Promise._resolveFromResolver (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/promise.js:427:31)
+    at new Promise (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/promise.js:53:37)
+    at Hexo.call (/Users/xxxxx/Documents/blog/node_modules/hexo/lib/hexo/index.js:188:10)
+    at runHexoCommand (/usr/local/lib/node_modules/hexo-cli/lib/index.js:58:17)
+    at tryCatcher (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/util.js:24:31)
+    at Promise._settlePromiseFromHandler (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/promise.js:454:31)
+    at Promise._settlePromiseAt (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/promise.js:530:18)
+    at Promise._settlePromises (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/promise.js:646:14)
+    at Async._drainQueue (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/async.js:79:16)
+    at Async._drainQueues (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/async.js:89:10)
+    at Immediate.Async.drainQueues [as _onImmediate] (/Users/xxxxx/Documents/blog/node_modules/hexo/node_modules/bluebird/js/main/async.js:14:14)
+    at processImmediate [as _immediateCallback] (timers.js:358:17)2H
+(fc145f72a104aeb1451a7f78ce6d421946a6e3852015-03-11T12:22:52Z411425:0
+2015-03-11T12:23:41ZFixed in commit fc145f7.ºÞ2017-09-30T19:06:40Z"2017-10-03T07:00:44Z*ýå½“æˆ‘ä½¿ç”¨is_currentçš„æ—¶å€™, ä¾‹å¦‚æˆ‘åœ¨é¦–é¡µ is_current('/')å¾—åˆ°çš„ç»“æžœå´æ˜¯falseï¼Œè€Œåƒlandscapeè¿™ç§ä¸»é¢˜ï¼Œmenuä¸­çš„è·¯å¾„éƒ½æ˜¯ä»¥ / å¼€å¤´. å› æ­¤ä¿®æ”¹äº†isCurrentHelperæ–¹æ³•
+
+ Add test cases for the changes.
+ Passed the CI test.2I
+(bccee83d03db5252611e7565507fb376aa82a46f2017-10-03T07:00:43Z3607926:Š
+2017-09-30T19:08:39ZrCoverage increased (+0.05%) to 97.218% when pulling d8acfee on magicianShiro:master into 4f19062 on hexojs:master.:‰
+2017-09-30T19:24:17ZqCoverage increased (+0.06%) to 97.22% when pulling 2584742 on magicianShiro:master into 4f19062 on hexojs:master.:‰
+2017-09-30T19:27:05ZqCoverage increased (+0.06%) to 97.22% when pulling 8c16243 on magicianShiro:master into 4f19062 on hexojs:master.:‰
+2017-09-30T19:28:51ZqCoverage increased (+0.06%) to 97.22% when pulling f1f2688 on magicianShiro:master into 4f19062 on hexojs:master.:Š
+2017-10-01T06:19:26ZrCoverage increased (+0.06%) to 97.219% when pulling 6dd6b4d on magicianShiro:master into 4f19062 on hexojs:master.¸-
+è2015-01-20T00:53:03Z"2015-01-25T07:21:14Z*èI'm getting this error when running hexo generate or hexo server
+The error references the following code:
+https://github.com/hexojs/hexo/blob/dev/lib/hexo/index.js#L305
+My system:
+$ hexo version
+
+hexo: 3.0.0-beta.2
+os: Windows_NT 6.2.9200 win32 x64
+http_parser: 1.0
+node: 0.10.35
+v8: 3.14.5.9
+ares: 1.9.0-DEV
+uv: 0.10.30
+zlib: 1.2.8
+modules: 11
+openssl: 1.0.1j2H
+(f1d896f71333b1158c1e0e996fcb42fdac6ddd922015-01-24T14:34:05Z411425:>
+2015-01-20T03:10:02Z&Could you post the full error message?:…
+2015-01-20T13:14:52ZìCan't reproduce the error. But it does give me this result:
+C:\gh\hexotest> hexo clean --debug
+12:12:24.084 DEBUG Hexo version: 3.0.0-beta.2
+12:12:24.099 DEBUG Working directory: C:\gh\hexotest\
+12:12:25.199 DEBUG Config loaded: C:\gh\hexotest\_config.yml
+12:12:25.277 DEBUG Script loaded: themes\landscape\scripts\fancybox.js
+12:12:25.293 DEBUG Plugin loaded: hexo-generator-archive
+12:12:25.329 DEBUG Plugin loaded: hexo-generator-category
+12:12:25.349 DEBUG Plugin loaded: hexo-generator-index
+12:12:25.364 DEBUG Plugin loaded: hexo-generator-tag
+12:12:25.442 DEBUG Plugin loaded: hexo-renderer-ejs
+12:12:26.168 DEBUG Plugin loaded: hexo-renderer-marked
+12:12:27.038 DEBUG Plugin loaded: hexo-renderer-stylus
+12:12:27.694 DEBUG Plugin loaded: hexo-server
+12:12:27.694 INFO  Deleted database.
+12:12:27.710 DEBUG About to exit
+12:12:27.710 FATAL Something's wrong. Maybe you can find the solution here: http://hexo.io/docs/troubleshooting.html
+undefined
+12:12:27.710 DEBUG Database saved
+C:\gh\hexotest>:¦
+2015-01-22T09:09:03ZC:\OpenSources\cache\hexo3.0>hexo clean --debug
+16:04:16.041 DEBUG Hexo version: 3.0.0-beta.2
+16:04:16.047 DEBUG Working directory: C:\OpenSources\cache\hexo3.0\
+16:04:16.356 DEBUG Config loaded: C:\OpenSources\cache\hexo3.0\_config.yml
+16:04:16.364 DEBUG Script loaded: themes\landscape\scripts\fancybox.js
+16:04:16.379 DEBUG Plugin loaded: hexo-generator-category
+16:04:16.391 DEBUG Plugin loaded: hexo-generator-index
+16:04:16.400 DEBUG Plugin loaded: hexo-generator-tag
+16:04:16.420 DEBUG Plugin loaded: hexo-renderer-ejs
+16:04:16.633 DEBUG Plugin loaded: hexo-renderer-stylus
+16:04:16.664 ERROR Plugin load failed: hexo-renderer-marked
+TypeError: Cannot read property 'highlight' of undefined
+    at C:\OpenSources\cache\hexo3.0\node_modules\hexo-renderer-marked\index.js:4:19:V
+2015-01-22T09:13:59Z>@liyouhai Your problem is not related to this issue. See #1003:¡
+2015-01-23T17:51:46ZˆI've installed the new beta and it's throwing the same error now.
+FATAL Something's wrong. Maybe you can find the solution here: http://hexo.io/docs/troubleshooting.html
+TypeError: Cannot call method 'concat' of undefined
+    at C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\lib\hexo\index.js:311:30
+    at tryCatcher (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\util.js:24:31)
+    at Promise._settlePromiseFromHandler (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\promise.js:582:31)
+    at Promise._settlePromiseAt (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\promise.js:727:18)
+    at Promise._settlePromiseAtPostResolution (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\promise.js:310:10)
+    at Async._drainQueue (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\async.js:84:12)
+    at Async._drainQueues (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\async.js:89:10)
+    at Async.drainQueues (C:\Users\celso_000\AppData\Roaming\npm\node_modules\hexo\node_modules\bluebird\js\main\async.js:14:14)
+    at process._tickCallback (node.js:442:13)
+
+Result of  $ hexo version:
+hexo: 3.0.0-beta.3
+os: Windows_NT 6.2.9200 win32 x64
+http_parser: 1.0
+node: 0.10.35
+v8: 3.14.5.9
+ares: 1.9.0-DEV
+uv: 0.10.30
+zlib: 1.2.8
+modules: 11
+openssl: 1.0.1j
+
+Contents of  package.json:
+{
+  "name": "hexo-site",
+  "version": "3.0.0-beta.3",
+  "private": true,
+  "dependencies": {
+    "hexo-deployer-git": "0.0.2",
+    "hexo-generator-archive": "0.0.2",
+    "hexo-generator-category": "0.0.3",
+    "hexo-generator-feed": "^1.0.0",
+    "hexo-generator-index": "0.0.2",
+    "hexo-generator-sitemap": "^1.0.0",
+    "hexo-generator-tag": "0.0.3",
+    "hexo-renderer-ejs": "^0.1.0",
+    "hexo-renderer-jade": "*",
+    "hexo-renderer-marked": "^0.2.3",
+    "hexo-renderer-stylus": "^0.2.1",
+    "hexo-server": "0.0.4"
+  }
+}:–
+2015-01-23T17:57:43Z~I've tried a vanilla install on a test dir and I don't get the error, so I'm thinking it's maybe related to the jade renderer.:¸
+2015-01-23T18:37:03ZŸIt's weird. I have almost same package.json but Hexo can run without any errors. I'll try to investigate this problem.
+{
+  "name": "hexo-site",
+  "version": "3.0.0-beta.3",
+  "private": true,
+  "dependencies": {
+    "hexo-generator-archive": "0.0.2",
+    "hexo-generator-feed": "^1.0.0",
+    "hexo-generator-index": "0.0.2",
+    "hexo-generator-sitemap": "^1.0.0",
+    "hexo-generator-tag": "0.0.3",
+    "hexo-renderer-ejs": "^0.1.0",
+    "hexo-renderer-marked": "^0.2.3",
+    "hexo-renderer-stylus": "^0.2.1",
+    "hexo-server": "0.0.4"
+  }
+}:„
+2015-01-24T01:47:48ZëAfter a lot of debugging, I found out what happened. The error happens when you have an empty _posts folder inside of the source folder.
+I've tried many combinations, but creating an *.md file inside that folder made the error go away.:,
+2015-01-24T03:34:29ZThanks. I'll fix it.:Ù
+2015-01-25T18:09:12ZÀThanks.
+A dom, 25/01/2015, 06:21, Tommy Chen notifications@github.com escreveu:
+
+Closed #1000 #1000 via f1d896f
+f1d896f
+.
+â€”
+Reply to this email directly or view it on GitHub
+#1000 (comment).è	ü2015-01-30T06:47:04Z"2015-01-31T07:06:00Z*½Conditional tags are all evaluated to false when I upgrade to Hexo 3.0.0-rc.1.
+I used swig as theme templates and used those tags to detect which page current is.
+Did I miss something?
+For your information, here are some information I have got:
+hexo: 3.0.0-rc.1
+os: Windows_NT 6.1.7601 win32 x64
+http_parser: 1.0
+node: 0.10.29
+v8: 3.14.5.9
+ares: 1.9.0-DEV
+uv: 0.10.27
+zlib: 1.2.3
+modules: 11
+openssl: 1.0.1h
+
+Tags used in my theme:
+ {% if is_home() or is_post() %}
+   {% set postsClass = "posts-expand" %}
+ {% else %}
+   {% set postsClass = "posts-collapse" %}
+ {% endif %}2H
+(343cd322092d7b9bc6f6a24935df169bec3ee15e2015-01-30T16:38:41Z411425:6
+2015-01-30T16:32:30ZWhat's your permalink setting?:7
+2015-01-30T18:06:58ZIt is:
+permalink: :year/:title/:6
+2015-01-30T18:12:19ZIt seems is_post helper is ok.:“
+2015-01-30T18:28:17Z{Thanks. I will check it again with your fix.
+By the way, what about other conditional tags, such as is_archive/is_page etc?:Ì
+2015-01-30T18:41:11Z³Other conditional plugins use new rules now. They don't check path anymore. You can check this file for detail: https://github.com/hexojs/hexo/blob/master/lib/plugins/helper/is.js:
+2015-01-30T19:04:21ZCool.àÖ2017-04-17T23:19:54Z"2017-04-21T01:46:18Z*¥	Environment Info
+Windows 10 using both CMD and Git Bash
+Node version(node -v): v6.9.1
+Hexo and Plugin version(npm ls --depth 0):
++-- hexo@3.3.1
++-- hexo-deployer-sftp@0.1.0
++-- hexo-generator-archive@0.1.4
++-- hexo-generator-category@0.1.3
++-- hexo-generator-index@0.2.1
++-- hexo-generator-tag@0.2.0
++-- hexo-renderer-ejs@0.2.0
++-- hexo-renderer-marked@0.2.11
++-- hexo-renderer-stylus@0.3.3
+`-- hexo-server@0.2.0
+For BUG
+When trying to use the list of alternative configs as documented here: https://hexo.io/docs/configuration.html#Using-an-Alternate-Config, I'm unable to use a list of configs.
+I am trying to do this in order to keep my sftp credentials outside the _config.yml which will be visible on GitHub
+Running this is ok
+hexo config
+Running this is ok
+hexo config --config _config.yml
+Running this is ok
+hexo config --config deploy_config.yml
+Running with a list outputs an error
+hexo config --config _config.yml,deply_config
+21:15:11.652 ERROR Local hexo not found in C:\projects\archive\robinteggdotcom-old
+11:15:11.654 ERROR Try running: 'npm install hexo --save'
+I have tried the npm install command but this does not make any difference
+Any help would be much appreciated :)2I
+(fbdee9043655a89fe0284f61cbaae88fd9a783e92017-04-21T01:45:51Z5704064:‹
+2017-04-18T00:05:25ZsWhen the config file doesn't find, it will throw this error message. I think we need to prompt more clear messages.:±
+2017-04-18T22:15:25Z˜I've run the node-inspector on the code and the code appears to be caused by the multi_config_path module being called before the logger has been setup and it then throws an exception.
+In the file: https://github.com/hexojs/hexo/blob/master/lib/hexo/index.js
+Line 57: https://github.com/hexojs/hexo/blob/master/lib/hexo/index.js#L57
+  var multiConfigPath = require('./multi_config_path')(this);
+  this.config_path = args.config ? multiConfigPath(base, args.config)
+                                 : pathFn.join(base, '_config.yml');
+...
+  this.log = logger(this.env);
+
+Because the logger is not initialised before the multi_config_path module, then the logger is not in the ctx var.
+In the file: https://github.com/hexojs/hexo/blob/master/lib/hexo/multi_config_path.js
+Line 66: https://github.com/hexojs/hexo/blob/master/lib/hexo/multi_config_path.js#L66
+var log = ctx.log;
+...
+log.i('Config based on', count, 'files');:‡
+2017-04-18T22:16:45ZoPotentially you could initialise the multi_config__path after the logger unless there is another reason not to?:/
+2017-04-18T22:19:25ZMaybe related to  #2499:³
+2017-04-18T22:58:49ZšYou are right. I did a quick test, the issue will be resolved if moved the multi_config block after the logger initialization.
+I will create a PR shortly.:(
+2017-04-19T04:59:14ZPR created #2520:R
+2017-04-19T09:16:14Z:That change looks to be fine. I will test later. Thanks :):9
+2017-04-20T20:17:03Z!PR #2520 works great locally ðŸ‘:N
+2017-04-21T01:46:18Z6Thank you. Great, I merged the changes into main repo.”¨2016-01-08T16:45:00Z"2016-01-09T18:21:19Z*˜Editing the front-matter, I forgot to fill a category, leaving a single dash in the list:
+title: Git .gitignore rules
+description: Exploration of some points of .gitignore rules
+categories:
+- Software
+- 
+tags:
+- Software
+- Tool
+- Command line
+- Git
+date: 2016-01-08 11:34:00
+
+---
+
+Hexo crashes pretty bad on this file, without leaving a clue about what is the problem...
+> hexo gen
+ERROR Process failed: _posts/Software/Git gitignore rules.md
+TypeError: Cannot read property 'constructor' of null
+    at Schema._parseQuery (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\warehouse\lib\schema.js:649:18)
+    at Schema._execQuery (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\warehouse\lib\schema.js:669:20)
+    at Model.find (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\warehouse\lib\model.js:572:28)
+    at Model.findOne (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\warehouse\lib\model.js:612:21)
+    at C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\hexo\lib\models\post.js:129:27
+    at tryCatcher (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\util.js:26:23)
+    at ReductionPromiseArray._promiseFulfilled (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\reduce.js:105:38)
+    at ReductionPromiseArray.init (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\promise_array.js:92:18)
+    at ReductionPromiseArray.init (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\reduce.js:42:10)
+    at Async._drainQueue (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\async.js:128:12)
+    at Async._drainQueues (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\async.js:133:10)
+    at Immediate.Async.drainQueues [as _onImmediate] (C:\PhiLhoSoft\Web\PhiLhoSoft.github.io\node_modules\bluebird\js\main\async.js:15:14)
+    at processImmediate [as _immediateCallback] (timers.js:383:17)
+
+If possible, it would be nice to handle this more gracefully, either ignoring the missing entry, or giving an informative error message...2H
+(c6515ed959857e0517194d73a6b62a57d40cd1022016-01-09T18:21:06Z411425:|
+2016-01-24T11:44:08Zdwell, when your tags style likes [tag1,tag2,] , if you leave [,] alone , it will have same problems.

@@ -1,0 +1,8 @@
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
+1;482;386;94;4;950;853;951;854;93;83;471;414
+2;415;411;2;4;934;482;935;483;91;55;467;178
+3;392;388;3;4;931;815;931;815;93;78;468;396
+4;469;404;0;146;853;797;853;797;82;75;456;420
+5;963;961;0;3;1352;1340;1352;1340;148;145;753;743
+6;961;959;0;3;1348;1336;1348;1336;148;145;751;739
+7;714;668;0;247;871;784;871;784;86;78;481;419
