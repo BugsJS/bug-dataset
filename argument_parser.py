@@ -1,5 +1,6 @@
 import argparse
-
+import sys
+import os
 
 def arg_parser():
     parser = argparse.ArgumentParser(description = '   ')
@@ -21,10 +22,12 @@ def arg_parser():
 
 
 def get_projects():
+    SCRIPTDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     projects_set = set()
-    projects_file = open("Projects.csv", "r")
+    projects_file = open(SCRIPTDIR+"/Projects.csv", "r")
     lines = projects_file.read().splitlines()
     for x in range(1, len(lines)):
         projects_set.add(lines[x].split(";")[0])
     projects_file.close()
     return list(projects_set)
+
