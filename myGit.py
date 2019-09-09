@@ -2,7 +2,7 @@ import csv
 import myVersion
 import os
 import subprocess as sp
-
+import sys
 
 def checkout(param_dict):
     repository = get_project_repository(param_dict)
@@ -21,7 +21,8 @@ def checkout(param_dict):
 
 
 def get_project_repository(param_dict):
-    with open("./Projects.csv", 'r') as infile:
+    SCRIPTDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+    with open(SCRIPTDIR+"/Projects.csv", 'r') as infile:
         reader = csv.DictReader(infile, delimiter=";")
         for row in reader:
             if str(param_dict["project"]) == str(row["Name"]):
@@ -39,3 +40,4 @@ def clone_repo(project_repo, folder):
     clone_cmd = "git clone "+str(project_repo)
     sp.call(clone_cmd, shell=True)
     os.chdir( os.listdir( "./" )[0] )
+
