@@ -1,3 +1,1561 @@
 
 
-Automatticmongoose
+Automatticmongoose‡é
+2013-03-17T19:22:56Z"2013-03-18T19:58:35Z*“Sub-document cannot call ownerDocument( ) method after pushing it into owning doc.
+sub = new SubModel();
+owner.subs.push(sub);
+sub.ownerDocument();2H
+(5d286eda3cb153057517935f519eb026dc799c282013-03-18T19:53:58Z166834:¡
+2013-03-17T20:40:22Zˆhard to tell from the example but if SubModel is in fact a model (created using mongoose.model() etc) then this works as designed. sub is not a subdocument but a document which do not have this method.
+sub = owner.subs.create({..})
+owner.subs.push(sub)
+sub.ownerDocument() // should work
+
+or the following
+ owner.subs.push({ .. })
+ sub = owner.subs[owner.subs.length - 1]
+ sub.ownerDocument():­
+2013-03-18T19:20:43Z”Hmm...
+I've tried your snippet but error is still here (mongoose version is 3.5.9)
+mongoose = require "mongoose"
+Schema   = mongoose.Schema
+
+conn = mongoose.createConnection 'mongodb://localhost:27017/test'
+
+Inner = new Schema {
+  field: String
+}
+
+conn.model "Inner", Inner
+
+Outer = new Schema {
+  inners: [ Inner ]
+}
+
+conn.model "Outer", Outer
+
+OModel = conn.model "Outer"
+IModel = conn.model "Inner"
+
+oInst = new OModel( )
+iInst = oInst.inners.create field: "some value"
+oInst.inners.push iInst
+
+iInst.ownerDocument( ) #<--- Error:E
+2013-03-18T19:40:14Z-ah, thanks for the follow up. yeah its a bug.:Ø
+2013-03-18T19:47:07Z¿this should still work in the meantime:
+var oInst = new OModel;
+oInst.inners.push({ field: "some value" })
+var doc = oInst.inners[ oInst.inners.length - 1 ];
+console.log(doc.ownerDocument());Ñ
+¶2013-04-26T00:18:10Z"2013-04-26T00:23:46Z*Ó	var util = require('util');
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+
+var sampleSchema = new Schema({
+    title: {type: String, default: ""}
+    , desc: {type: String, default: ""}
+    , membernames: [String]
+});
+
+var SampleModel = mongoose.model('Sample', sampleSchema);
+
+
+//connect to single instance
+mongoose.connect("mongodb://localhost/test", {server: { auto_reconnect: true }}, function(err) {
+    if (err) console.log("something went wrong");
+});
+
+
+//connection's working
+mongoose.connection.on('open', function () {
+
+    var a = new SampleModel({ title: "sample title", desc: "sample desc", membernames: ["alfa", "beta", "gamma"] });
+    a.save( function (err, s) {
+        if (err) {
+            console.log("something went wrong");
+            console.log(util.inspect(err, false, null, false));
+        } else {
+
+            SampleModel.find( { membernames: { $regex: /a/, $options: "i" }}, null, null, function(err, f) {
+                if (err) {
+                    console.log("something went wrong");
+                    console.log(util.inspect(err, false, null, false));
+                } else {
+                    console.log(f._id);
+                }
+            });
+        }
+    });
+});2H
+(fb5d6027ab62caf1310546337e2875396bc984472013-04-26T00:23:21Z166834üæ
+2013-03-12T19:32:19Z"2013-03-12T20:00:34Z*•It could be good for performance if you add populate lean() to .populate() method itself. So if we use populate at now like the following:
+Model.find({ type: 'paper' }).lean().populate('batch').exec(fn)
+
+We get documents with type 'paper' as just JavaScript objects but 'patch' as fully functional mongoose document. It could be cool if we could make something like the following:
+Model.find({ type: 'paper' }).lean().populate('batch', {lean: true}).exec(fn)
+
+Now all documents are just JavaScript object. What do you think about it?2H
+(c5527ba0f84a7fa13bc6a4368f715db0253cc9162013-03-12T20:00:30Z166834:0
+2013-03-12T19:46:49Zgood catch. thats a bug.:=
+2017-08-08T13:32:02Z%This is still a bug, should be fixed.:v
+2017-08-22T20:12:39Z^Please open a new issue with detailed repro instructions, don't comment on long-closed issues.åQ€
+2013-01-10T21:15:42Z"2013-08-22T22:17:10Z*ËWhen executing a find query; Object fields in the mongoose Schema, which have arrays embedded, return an empty Object instead of being completely excluded.
+A detailed example is here: http://goo.gl/xJZkd
+I have a schema below
+ThisSchema = new Schema ({
+    name:   { type: String, index: { unique: true } },
+    _ref:       [
+                    { type: ObjectId, ref: 'Reference' }
+                ],
+    foo:   {
+                    start: {
+                        _ref:    { type: ObjectId, ref: 'Location' },
+                        name:   { type: String },
+                        loc:    { type: [Number], index: '2d' }
+                    },
+                    end: {
+                        _id:    { type: ObjectId, ref: 'Location' },
+                        name:   { type: String },
+                        loc:    { type: [Number], index: '2d' }
+                    }
+    foo2:    [ EmbeddedSchema ],
+    foo3:   {
+                    bar:  { type: [Number], min: 0, max: 100 }
+                }
+
+});
+Now, calling
+ThisSchema.statics.find({'_id': x},'-foo -foo2 -foo3',cb)
+returns
+{
+  "result": {
+    "__v": 0,
+    "_id": "x",
+    "foo3": {
+      "bar": []
+    },
+    "foo": {
+      "end": {
+        "loc": []
+      },
+      "start": {
+        "loc": []
+      }
+    },
+    "_ref": [
+      "y"
+    ]
+  }
+}
+Instead of not returning foo as part of the result, it just returns its representation in the schema. Note that foo2 has been removed, it was just a simple array with no fields inside preset.
+The result I expected was:
+{
+  "result": {
+    "__v": 0,
+    "_id": "x",
+    "_ref": [
+      "y"
+    ]
+  }
+}
+As in the link provided above, there are workarounds, but the above issue makes Mongoose queries to be less consistent.2I
+(cb98eea018f5d035ff5ff99874bcdbeca28384162013-08-22T21:19:57Z1506233:ö
+2013-01-11T16:46:10ZÝYour schema is a bit convoluted for testing, and there are some syntax errors where I'm not sure I know what exactly you were trying to code. So I'm not sure I'm testing exactly what you want, but I think you'll find that:
+
+foo2 (the Array) is properly excluded
+foo and foo3 (which both have subdocuments) are not being excluded with your select syntax -- that's not what I expected, seems you didn't either
+If you change your select syntax to identify all the deepest subdocuments, you can effectively exclude the entire property -- i.e., '-foo -foo2 -foo3' would become '-foo.start.name -foo.start.loc -foo.end.name -foo.end.loc -foo2 -foo3.bar'
+
+If that's the behavior you're seeing as well, let's sharpen the focus of this issue.:Á(
+2013-01-11T18:46:10Z¨(All your 3 points are what's happening. My schema is large, but I've posted it below.
+The point was to avoid having to do what you mention in point 3.
+Anyways, here is the code and the various scenarios:
+Schema
+var RouteSchema = new Schema ({
+    _cat:       [
+                    { type: ObjectId, ref: 'StationCategory' }
+                ],
+    stations:   {
+                    start: {
+                        _id:    { type: ObjectId, ref: 'Station' },
+                        name:   { type: String },
+                        loc:    { type: [Number], index: '2d' }
+                    },
+                    end: {
+                        _id:    { type: ObjectId, ref: 'Station' },
+                        name:   { type: String },
+                        loc:    { type: [Number], index: '2d' }
+                    },
+                    points: [
+                        {
+                            _id:    { type: ObjectId, ref: 'Station' },
+                            name:   { type: String },
+                            loc:    { type: [Number], index: '2d' },
+                            attrib: { type: String, default: 'Stop', 'enum': [ 'Start', 'Stop', 'All' ] },
+                            order: { type: Number }
+                        }
+                    ]
+                },
+    routes:     [ RoutePathSchema ],
+    schedule:   {
+                    operating: [
+                        {
+                            start:  { type: Number, min: 0 },
+                            end:    { type: Number, max: 100 }
+                        }
+                    ],
+                    intervals:  { type: [Number], min: 0, max: 10 }
+                }
+
+});
+
+Case 1
+Excluding at highest level
+RouteSchema.methods.findById = function(cb) {
+    var _id = this._id;
+    return this.model('Route').findById({'_id': _id}, '-stations -routes -schedule' , cb);
+};
+Results
+{
+  "status": {
+    "code": 200
+  },
+  "response": {
+    "route": {
+      "__v": 9,
+      "_id": "50d1bed130eb531c14000014",
+      "schedule": {
+        "intervals": [],
+        "operating": []
+      },
+      "stations": {
+        "points": [],
+        "end": {
+          "loc": []
+        },
+        "start": {
+          "loc": []
+        }
+      },
+      "_cat": [
+        "50b92b585cf34cbc0f00000c"
+      ]
+    }
+  }
+}
+Case 2
+Nesting a level further
+RouteSchema.methods.findById = function(cb) {
+    var _id = this._id;
+    return this.model('Route').findById({'_id': _id},
+            '-stations.start -stations.end -stations.points -routes -schedule.intervals -schedule.operating',
+            cb);
+};
+Result
+{
+  "status": {
+    "code": 200
+  },
+  "response": {
+    "route": {
+      "__v": 9,
+      "_id": "50d1bed130eb531c14000014",
+      "stations": {
+        "end": {
+          "loc": []
+        },
+        "start": {
+          "loc": []
+        }
+      },
+      "_cat": [
+        "50b92b585cf34cbc0f00000c"
+      ]
+    }
+  }
+}
+
+Notice here that the stations.start.name and stations.end.name aren't returned, yet the empty stations.start.loc are returned. I believe the issue is caused by there being an array as a subfield in the fields.
+Also, now that I've removed every field from schedule, it is no longer returned, which makes sense.
+
+Case 3
+Going in to the deepest field level
+This isn't necessary but I'll just add it in.
+If I used the code below, I'd get stations.start._id, so I'd have to also remove it.
+RouteSchema.methods.findById = function(cb) {
+    var _id = this._id;
+    return this.model('Route').findById({'_id': _id},
+            '-stations.start.loc -stations.start.name -stations.end.loc -stations.end.name -stations.points -routes -schedule.intervals -schedule.operating' ,
+            cb);
+};
+returns
+{
+  "status": {
+    "code": 200
+  },
+  "response": {
+    "route": {
+      "__v": 9,
+      "_id": "50d1bed130eb531c14000014",
+      "stations": {
+        "end": {
+          "_id": "50d0ef55b8b3b50c0a000013"
+        },
+        "start": {
+          "_id": "50d0e9deb8b3b50c0a00000c"
+        }
+      },
+      "_cat": [
+        "50b92b585cf34cbc0f00000c"
+      ]
+    }
+  }
+}
+So the code to completely remove stations is:
+RouteSchema.methods.findById = function(cb) {
+    var _id = this._id;
+    return this.model('Route').findById({'_id': _id},
+            ' -stations.start -stations.start.loc -stations.end -stations.end.loc -stations.points -routes -schedule.intervals -schedule.operating' ,
+            cb);
+};
+Results
+{
+  "status": {
+    "code": 200
+  },
+  "response": {
+    "route": {
+      "__v": 9,
+      "_id": "50d1bed130eb531c14000014",
+      "_cat": [
+        "50b92b585cf34cbc0f00000c"
+      ]
+    }
+  }
+}
+Correctly returning the _id and _cat, which I did not exclude.
+My workaround
+I ended up using the syntax below to include what I want, instead of excluding what I don't want.
+{ '_cat': 1} // this is solely to get to result of case 3. In my actual code I include a lot of other omitted fields
+This can be tedious if the Schema is much larger and I want say 21 out of 30 fields in the document. I would have to either include all 21 fields, or use case 3 which is messy.
+I'll use my actual code in future for ease of testing.:…
+2013-01-11T18:49:07ZìOne thing I forgot to mention is that in Cases 2 & 3, I only remove -stations.points, and the whole field is correctly removed. I noticed that it's correctly removed because it's an array in itself, instead of an object that has arrays.:Å
+2013-01-14T17:45:16Z¬You might want to play around with field selection defaults to see if that simplifies your life any. Also, you could try statics to abstract away the most common scenarios.:Ë
+
+2013-01-14T17:57:04Z²
+(UPDATE: I just saw now that I'm actually using a method in this instance, instead of a static. My apologies. I'll change the code to a static and check if the problem still persists. If not then this might be a non-issue)
+The first solution's useful in certain scenarios, no doubt, but in my case it's not very helpful in solving the problem of fields with empty arrays being returned.
+For the second one, I already use statics, wherever I don't need to save/update anything: I use a static instead of method.
+I guess more than just logging an issue, I really wanted to see if it's an issue or not, and ask for guidance on where to look in the project, so I can apply my mind at a fix. I'd like to contribute something, even if trivial :)
+-----Original Message-----
+From: Dan MacTough notifications@github.com
+Date: Mon, 14 Jan 2013 08:45:21
+To: LearnBoost/mongoosemongoose@noreply.github.com
+Reply-To: LearnBoost/mongoose reply@reply.github.com
+Cc: nevi-menevilledips@gmail.com
+Subject: Re: [mongoose] Schema.find: Excluding field which contains array
+still returns a blank field (#1280)
+You might want to play around with field selection defaults to see if that simplifies your life any. Also, you could try statics to abstract away the most common scenarios.
+
+Reply to this email directly or view it on GitHub:
+#1280 (comment):Õ
+2013-01-15T21:38:46Z¼looks like a hole in the implementation which does not check to see if all deeper values are defaults (arrays always get defaults).
+if you'd like to take a stab, this is the relevant code.:]
+2013-01-15T21:42:15ZEThanks, just forked mongoose, will submit a pull request if I win :-):†
+2013-01-15T21:50:37ZíðŸ‘
+On Tue, Jan 15, 2013 at 12:44 PM, nevi-me notifications@github.com wrote:
+
+Thanks, I'll play around with the Mongoose on my app, and if I get it
+right I'll fork it and pull request a solution.
+â€”
+Reply to this email directly or view it on GitHubhttps://github.com//issues/1280#issuecomment-12288209.
+
+
+Aaron
+@aaronheckmann https://twitter.com/#!/aaronheckmann:~
+2013-01-16T22:13:21ZfI was having trouble with line endings, didn't see that my commits were being referenced to this issue
+‡2013-04-03T12:22:30Z"2013-04-04T01:28:39Z*–Model#$__delta uses the newly added MongooseArray#$__getAtomics() (since commit 87b2a3330788ffee9a4cfa5ac23f9d028cd83946).
+This calls doc.toObject() in every element in the case of a MongooseDocumentArray, which causes a user-defined transform e.g.
+schema.set('toObject', { transform: function(doc, ret, options) {
+  delete ret._id;
+} }))
+to be called on the elements. The transformed elements are then saved in the database.
+Checkout this gist for a simple way to reproduce it.
+The expected output is
+{ seconds: [ { _id: 515c0d25863e8e503f000003 }, [length]: 1 ] }
+the actual output is
+{ seconds: [ { _id: 515c0d25863e8e503f000003, bla: '123' }, [length]: 1 ] }2H
+(622be749195947d329dc8285beed15ee4ce2541d2013-04-03T16:49:33Z166834:G
+2013-04-03T16:32:33Z/thanks for the great write up. fix coming soon.:1
+2013-04-04T09:53:00ZThanks for the quick fix!ãÏ
+2013-02-24T03:23:38Z"2013-03-02T21:22:16Z*ÎModelActivity.find({user: userId})
+    .populate('user')
+    .exec(function(err, activity){
+        if(err){
+            throw err;
+        } else {
+            ModelActivity.populate(activity, {path: 'user.avatar'}, function(err, test){
+                console.log(test);
+            });
+        }
+    });
+This code was failing to detect that user.avatar was defined as 'photos' model in my schema (it works if it's in 1st level of populate), it was querying 'users' instead, so i had to specify it in populate options.
+I know this version is still WIP, but i didn't see it was reported...2H
+(c671672a908e4e3ae693e499e7f9fe649aa41db72013-02-27T17:34:34Z166834:X
+2013-02-24T06:30:05Z@Please post your schemas and whatever is necessary to reproduce.:í
+
+2013-02-24T18:11:39ZÔ
+Hi, here is the code with minimal schemas that exhibit the problem:
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/test');
+mongoose.set('debug', true);
+var Schema = mongoose.Schema;
+
+var userSchema = Schema({
+    name: {
+        first: String,
+        last: String
+    },
+    avatar: {type: Schema.Types.ObjectId, ref: 'photos'}
+});
+
+var User = mongoose.model('users', userSchema);
+
+var photoSchema = Schema({
+    user: {type: Schema.Types.ObjectId, ref: 'users'}
+});
+
+var Photo = mongoose.model('photos', photoSchema);
+
+var activitySchema = Schema({
+    user: {type: Schema.Types.ObjectId, ref: 'users'}
+});
+
+var Activity = mongoose.model('activities', activitySchema);
+
+Activity.find().populate('user').exec(function(err, activities) {
+    Activity.populate(activities,{path: 'user.avatar'}, function(err, activities){
+        console.log(activities); //results in avatar: null as the query it ran is:
+        //Mongoose: users.find({ _id: { '$in': [ ObjectId("51297eb5870a5a9cc7000001"), ObjectId("51297eb5870a5a9cc7000001") ] } }) { fields: undefined, safe: undefined }
+    });
+});
+
+//If i specify the model it works fine:
+Activity.find().populate('user').exec(function(err, activities) {
+    Activity.populate(activities,{path: 'user.avatar', model: 'photos'}, function(err, activities){
+        console.log(activities);
+    });
+});:Ê
+2013-02-26T06:30:09Z±this is fixed in the 3.6 branch (not yet released). the change allows choosing the model which performs population one of two ways: either specifying it through query options (as you've discovered) or through the use of the model itself. Example:
+Activity.find().populate('user').exec(function(err, activities) {
+    Activity.populate(activities,{path: 'user.avatar', model: 'photos'}, function(err, activities){
+or
+Activity.find().populate('user').exec(function(err, activities) {
+    Photo.populate(activities,{path: 'user.avatar'}, function(err, activities){s’2013-11-27T18:16:27Z"2013-11-27T18:39:23Z2@
+(bbf41870d94ff176219dec6d3dd7d26d40fc11a22013-11-27T18:39:19Z¤
+ý2013-06-22T19:43:33Z"2013-07-03T22:48:08Z*’Mongoose 3.6.11, node 0.10.5
+Test case
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+mongoose.connect('mongodb://localhost/mongoose-bug')
+
+var thingSchema = new Schema({
+    _id: String,
+    flag: {
+        type: Boolean,
+        "default": false
+    }
+});
+
+var Thing = mongoose.model('Thing', thingSchema);
+var key = 'some-id';
+
+Thing.findOneAndUpdate({_id: key}, {$set: {flag: false}}, {upsert: true, "new": false}).exec(function(err, thing) {
+    console.dir(thing);
+});
+Actual output
+
+First run:
+{ flag: false }
+Second run:
+{ _id: 'some-id', flag: false }
+
+Expected output
+
+First run:
+null
+Second run:
+{ _id: 'some-id', flag: false }2I
+(3b863e15a716ab2fda43945e47da9e4333d40bb42013-07-03T22:41:46Z1506233:Ž
+2013-06-23T16:39:43ZvMore: removing default: false from the schema will result in undefined for the first run. So this is definitely a bug.:Ø
+2013-07-03T17:29:29Z¿What is happening is the findAndModify call is returning an empty object, mongoose then tries to cast this to a new model, which in this case, has a default value on the flag property. This may be the intended functionality, but I will check with @aheckmann. I have a fix implemented if it is not the intended behavior.:%
+2013-07-04T08:03:23ZGreat thanks!Á2015-01-12T11:48:29Z"2015-02-03T18:00:26Z*„Hi all,
+I found a new bug on async validator of embedded doc : callback of save method is called before all subdoc are checked.
+The best is an example :
+var mongoose=require('mongoose');
+var schema = mongoose.Schema;
+var db = mongoose.createConnection('mongodb://localhost/tests');
+
+var v=function(value, cb){
+    var self=this;
+    console.log('IN VALID ' + value);
+    setTimeout(function(){
+    console.log('IN ASYNC VALID ' + value);
+    cb(false);
+    }, (value==='r'?1000:1500)); // First sub doc will be validate after 1s and second sub doc after 1.5s
+    return true;
+}
+
+var s1 = new schema({
+    title:String,
+    validField:{
+    type:String,
+    validate:v
+    }
+});
+var s2 = new schema({
+    title:  String,
+    s1:[s1]
+});
+var s3 = new schema({
+    title:  String,
+    s2:[s2]
+});
+
+var m3 = db.model('m3', s3);
+var d = new m3({
+    title:'test',
+    s2:[
+    {
+        title:'test',
+        s1:[
+        {
+            validField:'r'
+        },
+        {
+            validField:'r2'
+        }
+        ]
+    }
+    ]
+});
+d.save(function(err,doc){
+    console.log(JSON.stringify(err, null, 2));
+    console.log(JSON.stringify(doc, null, 2));
+});
+
+On this example, normally output should be :
+IN VALID r
+IN VALID r2
+IN ASYNC VALID r
+IN ASYNC VALID r2
+{
+  "message": "Validation failed",
+  "name": "ValidationError",
+  "errors": {
+    "s2.0.s1.0.validField": {
+      "properties": {
+        "type": "user defined",
+        "message": "Validator failed for path `{PATH}` with value `{VALUE}`",
+        "path": "validField",
+        "value": "r"
+      },
+      "message": "Validator failed for path `validField` with value `r`",
+      "name": "ValidatorError",
+      "kind": "user defined",
+      "path": "validField",
+      "value": "r"
+    },
+    "s2.0.s1.1.validField": {
+      "properties": {
+        "type": "user defined",
+        "message": "Validator failed for path `{PATH}` with value `{VALUE}`",
+        "path": "validField",
+        "value": "r2"
+      },
+      "message": "Validator failed for path `validField` with value `r2`",
+      "name": "ValidatorError",
+      "kind": "user defined",
+      "path": "validField",
+      "value": "r2"
+    }
+  },
+  "key": "undefined.0.undefined.0.undefined"
+}
+undefined
+
+but I have :
+IN VALID r
+IN VALID r2
+IN ASYNC VALID r
+{
+  "message": "Validation failed",
+  "name": "ValidationError",
+  "errors": {
+    "s2.0.s1.0.validField": {
+      "properties": {
+        "type": "user defined",
+        "message": "Validator failed for path `{PATH}` with value `{VALUE}`",
+        "path": "validField",
+        "value": "r"
+      },
+      "message": "Validator failed for path `validField` with value `r`",
+      "name": "ValidatorError",
+      "kind": "user defined",
+      "path": "validField",
+      "value": "r"
+    }
+  },
+  "key": "undefined.0.undefined.0.undefined"
+}
+undefined
+IN ASYNC VALID r2
+
+You can see that the save method callback is called immedialy after first sub doc validation, it doesn't wait the second sub doc validation.
+This issue happend only if we call cb(false) to invalid a doc, but if I do cb(true), save callback is called at the end (but of course doc is valid ;)) :
+IN VALID r
+IN VALID r2
+IN ASYNC VALID r
+IN ASYNC VALID r2
+null
+{
+  "__v": 0,
+  "title": "test",
+  "_id": "54b3a5975a6dcea50ef9b915",
+  "s2": [
+    {
+      "title": "test",
+      "_id": "54b3a5975a6dcea50ef9b916",
+      "s1": [
+        {
+          "validField": "r",
+          "_id": "54b3a5975a6dcea50ef9b918"
+        },
+        {
+          "validField": "r2",
+          "_id": "54b3a5975a6dcea50ef9b917"
+        }
+      ]
+    }
+  ]
+}
+
+Thanks2I
+(66f1ceda22e50071783e8dcd816d467146d043ba2015-02-03T18:00:07Z1620265:M
+2015-01-12T17:27:29Z5Thanks for pointing this out, I'll see if I can repro:m
+2015-02-03T10:53:44ZUHi,
+This issue is always present in 4.0.0-rc1. Do you think you can fix that quickly?Ž¡2013-09-15T16:41:44Z"2013-09-22T02:00:43Z*¤Mongoose 3.6.19, node 0.10.13
+I was not yet able to reproduce this in a dedicated test case, but it happens inside my code base. I have multiple pre-save hooks, two of them need place to be populated. To keep both independent, they are both calling doc.populate('place', function() {}), but the second call causes doc.place to be null.
+I've documented my journey through the Mongoose code with screenshots, I hope they help.
+
+
+
+
+The very last screenshot shows the exact line where place suddenly becomes null. The two console outputs were made before and after the loop.
+Using debug mode I can see that both calls send the exact same query to MongoDB, so that's not the issue.2@
+(5fdf81555763337be08dce9fcab9986ebdfc23732013-09-22T02:00:25Z:¬
+2013-09-15T16:59:27Z“There you go
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+mongoose.connect('mongodb://localhost/issue-1697');
+
+var placeSchema = new Schema({
+    name: {
+        type: String,
+        required: true
+    }
+});
+
+var offerSchema = new Schema({
+    title: {
+        type: String,
+        required: true,
+        match: /^.+/
+    },
+    place: {
+        type: Schema.Types.ObjectId,
+        ref: 'Place',
+        required: true
+    }
+});
+
+offerSchema.pre('validate', function(next) {
+    var offer = this;
+
+    console.log('Place before first populate', offer.place);
+
+    this.populate('place', function(err) {
+        console.log('Place after first populate', offer.place);
+
+        next(err);
+    });
+});
+
+offerSchema.pre('save', function(next) {
+    var offer = this;
+
+    console.log('Place before second populate', offer.place);
+
+    this.populate('place', function(err) {
+        console.log('Place after second populate', offer.place);
+
+        next(err);
+    });
+});
+
+var Place = mongoose.model('Place', placeSchema);
+var Offer = mongoose.model('Offer', offerSchema);
+
+var p = new Place({
+    name: 'fancy name'
+});
+
+p.save(function(err) {
+
+    var o = new Offer({
+        title: 'fancy title',
+        place: p
+    });
+
+    o.save(function(err) {});
+});
+Outputs
+
+Place before first populate 5235cba7606024f31a000001
+Place after first populate { name: 'fancy name', _id: 5235cba7606024f31a000001, __v: 0 }
+Place before second populate { name: 'fancy name', _id: 5235cba7606024f31a000001, __v: 0 }
+Place after second populate null:C
+2013-09-22T11:10:10Z+thank you so much. I can't wait for 3.6.20.¢	Ã2013-05-07T13:16:45Z"2013-05-09T00:22:45Z*‚$ mongo --version
+MongoDB shell version: 2.4.3
+$ node -v
+v0.10.5
+
+mongoose version is 3.6.9
+the following code:
+var mongoose = require('mongoose');
+
+mongoose.connect('127.0.0.1/test');
+
+var DocSchema = new mongoose.Schema({
+  _id: String,
+  foo: String
+});
+
+var Doc = mongoose.model('docs', DocSchema);
+
+var doc = new Doc({
+  _id: 'some_id',
+  foo: 'bar'
+});
+
+doc.save(function(err) {
+  console.log("doc.save err:", err);
+
+  Doc.findById('some_id', function(err, doc1) {
+    console.log("Doc.findById err:", err);
+    console.log('doc:', doc1);
+
+    doc1.increment();
+    console.log('doc:', doc1);
+
+    doc1.save(function(err, doc) {
+      console.log("doc.save err:", err);
+    });
+  });
+});
+
+causes an error, all output:
+ $ node example/increment.js 
+doc.save err: null
+Doc.findById err: null
+doc: { _id: 'some_id', foo: 'bar', __v: 0 }
+doc: { _id: 'some_id', foo: 'bar', __v: 0 }
+doc.save err: { message: 'No matching document found.', name: 'VersionError' }
+
+I incorrect use the increment method, or something goes wrong?2H
+(f5097a3db29da5e29a69222e1827979842840cb12013-05-09T00:22:00Z166834: 
+2013-05-11T13:17:16ZThanks=)à
+2013-03-08T02:39:17Z"2013-08-21T22:31:39Z*ÔSchema options for populated documents are ignored when calling toJSON. Instead options for the document which calls toJSON are used. See the following test fails for the detail.
+https://gist.github.com/nkzawa/5148103
+I found that the cause is utils.clone uses a same options value for each mongoose objects.
+This behavior is not intuitive.2I
+(7a5f700c8d66c7a14c05a23a457deab86d0a0ad02013-08-21T22:24:43Z1506233:;
+2013-04-22T21:54:58Z#Same issue is also logged in #1412.õ
+2013-03-24T09:32:54Z"2013-03-30T02:25:55Z*ƒFor example, I want to update a document without waiting for the callback:
+userSchema.methods.addAccount = function (account) {
+  this.update({$push: {accounts: account._id}}).exec();
+};
+
+But that will produce an error: "TypeError: Cannot call method 'exec' of undefined". I think the "update" method should be change to:
+Document.prototype.update = function update () {
+  var args = utils.args(arguments);
+  args.unshift({_id: this._id});
+  /**/ return /**/ this.constructor.update.apply(this.constructor, args);
+}2H
+(41912f9bfe3bb0fc5f001ed1bac61e761f8f6ecb2013-03-29T05:19:30Z166834Å“2012-05-15T19:52:47Z"2014-09-19T19:23:59Z*²I have an embedded doc that I want to monitor for changes
+ClientSchema = new Schema({
+  conversations: [ConversationSchema],
+})
+
+ConversationSchema = new Schema({
+  messages: [MessageSchema],
+})
+
+ConversationSchema.post('save', function(doc) {
+  console.log doc.collection.name
+})
+
+But it appears that when I save a new conversation, the doc passed to the middleware function is a client doc, not a conversation doc. I really want to track only the embedded conversations for changes, is there a way to do this with mongoose middleware as things currently stand?2I
+(624509ee44d8241d8e229bea791818e49c242f4d2014-08-27T18:54:44Z1620265:3
+2012-05-16T20:02:13Znot currently. thats a bug.:2
+2014-04-12T00:47:28ZWe're hitting this as well:*
+2014-05-14T20:57:21ZAlso hitting this.:
+2014-07-18T22:56:32Z+1:f
+2014-08-25T21:18:52ZN+1 would much rather not have to hack around this in the parent post save hook:y
+2014-09-19T19:23:59ZaActually, looks like this was already fixed in #1823 , so the fix should already be out in 3.8.16¤2013-07-08T16:47:06Z"2013-08-08T16:51:38Z*«I met such kind of error when I try to update an element in an array of ObjectID using  $ positional operator.
+Here is my schema:
+var Schema = mongoose.Schema;
+
+var playerSchema = new Schema({
+...
+  units: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Unit'
+    }
+  ],
+...
+});
+And I try to update a unit in the array with a new one:
+playerSchema.methods.upgrade = function (unitId, stone, query, callback) {
+...
+        this.model('Player').update({_id: this._id, 'units': unitId}, {
+          $set: {'units.$': newUnit._id}
+        }, function removeOldUnit(err) {
+...
+          });
+};
+Then I got an error shown in title: Cannot call method 'path' of undefined.
+After tracing the source code of mongoose, I guess I found the root cause in lib/model.js:
+Model._getSchema = function _getSchema (path) {
+  var schema = this.schema
+    , pathschema = schema.path(path);
+
+  if (pathschema)
+    return pathschema;
+
+  // look for arrays
+  return (function search (parts, schema) {
+    var p = parts.length + 1
+      , foundschema
+      , trypath
+
+    while (p--) {
+      trypath = parts.slice(0, p).join('.');
+      foundschema = schema.path(trypath);
+      if (foundschema) {
+
+        /////
+        //Note: I'm not sure what the 'caster' means but I think you guys use it to                          handle sub-doc or Mixed type later. But for my case, the ObjectId type doesn't need to go to this branch. I tried to return foundschema here directly and it worked fine for my case.
+        /////
+
+        if (foundschema.caster) {
+
+          // array of Mixed?
+          if (foundschema.caster instanceof Types.Mixed) {
+            return foundschema.caster;
+          }
+
+          // Now that we found the array, we need to check if there
+          // are remaining document paths to look up for casting.
+          // Also we need to handle array.$.path since schema.path
+          // doesn't work for that.
+          if (p !== parts.length) {
+            if ('$' === parts[p]) {
+              // comments.$.comments.$.title
+              return search(parts.slice(p+1), foundschema.schema);
+            } else {
+              // this is the last path of the selector
+              return search(parts.slice(p), foundschema.schema);
+            }
+          }
+        }
+        return foundschema;
+      }
+    }
+  })(path.split('.'), schema)
+}2I
+(3c7ab80a572e0ea4cb22e95ae048db24118f64092013-08-08T16:50:50Z1506233:ã
+2013-07-08T16:49:40ZÊMy note inside code is not wrapped.
+Paste it here to make it more clear:
+//Note: I'm not sure what the 'caster' means but I think you guys use it to handle sub-doc or Mixed type later. But for my case, the ObjectId type doesn't need to go to this branch. I tried to return foundschema here directly and it worked fine for my case.çó
+2013-03-22T12:10:20Z"2013-03-26T01:40:09Z*ÅWhen using populate with findOneAndUpdate query it doesn't work
+here is example https://gist.github.com/martynovs/5220509
+but if update is empty (null or {}) then populate is working
+mongoose 3.6.02H
+(b7688c2e5b0eb00858256aa677fb9d703c2490552013-03-26T00:52:17Z166834:"
+2013-03-26T00:14:27Z
+good catchŒ	ò
+2013-03-22T11:48:33Z"2013-04-03T01:48:55Z*áPlease, could you explain this bug. You may run this code entirely.
+This code saves one system in systems collection,  system has array of apps.
+The we modify app's subdoc field "memory", save it.
+After save we get 2 apps, one of them is very strange and not modified first app.
+var mongoose = require('mongoose')
+
+mongoose.connect('YOUR_DB')
+
+var SystemSchema = new mongoose.Schema({
+    apps: [{
+        resources: {
+            memory: {
+                limit: 'number'
+            }
+
+        }
+    }]
+});
+
+SystemSchema.set('collection', 'systems')
+
+var System = mongoose.model('System', SystemSchema)
+
+var system = new System({
+    _id: '5140a09be5c703ac2c00000b',
+    apps: [
+        {
+            resources: {
+                memory: {
+                    limit: '1024'
+
+                }
+            }
+        }
+    ]
+})
+
+System.remove({}, function(){
+    system.save(function(err){
+        System.findById('5140a09be5c703ac2c00000b', function(err, system){
+
+            //system.apps.push({})
+            var app = system.apps[0]
+
+            app.resources.memory = {limit: 100}
+            system.save(function(){
+
+                System.findById('5140a09be5c703ac2c00000b', function(err, system){
+                    console.log('system.apps', system.apps)
+                })
+
+            })
+
+        })
+    })
+
+})
+
+The output:
+system.apps [
+{ 
+    resources: { memory: [ null ] } 
+}
+{
+   _id: 514c3528480b17b458000002,
+  resources: { memory: { limit: 1024 } } 
+}]
+
+Mongoose 3.6.0, MongoDB 2.4RC2H
+(275dad367096b872536f504a7e685b49337daba92013-04-03T01:13:15Z166834:Ó
+2013-03-23T01:14:42ZºWell I've figured out that if I replace line:
+     app.resources.memory = {limit: 100}
+
+with
+     app.resources.memory = {}
+     app.resources.memory.limit = 100            
+
+It works correctly. I wonder could you explain what I going on with mongoose objects, what causes them to handle the situation it that way?:U
+2013-04-02T22:17:14Z=thanks for reporting this bug. looking into a resolution now.àÚ
+2013-03-05T12:43:52Z"2013-04-04T01:28:40Z*¥Combining a query.select("+field") to override the schema level select: false option breaks the query.slice("field", 2).
+The following code proofs this bug (using mongoose v3.5.6):
+var mongoose = require("mongoose");
+mongoose.connect("mongodb://localhost/test");
+
+var A = new mongoose.Schema({
+    one: { type: String },
+    many: { type: [String], select: false }
+});
+
+var ModelA = mongoose.model("ModelA", A);
+
+ModelA.create({
+    one: "single value",
+    many: ["1", "2", "3", "4", "5"]
+}, function (err) {
+    var query = ModelA.find().select("+many").where("many").slice(2);
+    query.exec(function (err, doc) { console.dir(doc); });
+
+    // actual: [{ _id: 5135d63df4b7523b10000001, many: [ '1', '2', '3', '4', '5' ] }]
+    // expected: [{ one: 'single value', _id: 5135d63df4b7523b10000001, __v: 0, many: [ '1', '2' ] }]
+});
+
+Seems like mixing select("field") and slice("field", count) statements, leads to unexpected results.2H
+(bf7bee94e99fb9088386c9c87b9e98f19c773aed2013-04-03T22:53:16Z166834:;
+2013-04-04T10:08:31Z#Thanks for the fix its appreciated!»Ò2013-05-18T13:39:49Z"2013-08-08T17:08:46Z*ƒIn my case every document Stream has a Stream.pictures containing an array of documents Picture.
+Here is what I get with using
+Stream.find({}).exec(err, docs) {
+  console.log(docs);
+});
+$ node test.js
+[ {
+    _id: 5196b332006b870000000008,
+    pictures:
+     [ 5196b33a006b870000000009,
+       5196b4b5006b87000000000a,
+       5196b4c8006b87000000000b,
+       5196b505006b87000000000d ],
+  },
+  { 
+    _id: 51975c2716798c0000000001,
+    pictures:
+     [ 51975c3216798c0000000002,
+       51975c7c16798c0000000003,
+       51975ca016798c0000000004,
+       51975f51353d650000000001 ],
+  } ]
+When I am using the new populate() in which I can pass an object such as:
+Stream
+  .find({})
+  .populate({
+      path: 'pictures',
+      options: { limit: 5}
+  })
+  .exec(function(err, docs) {
+    console.log(docs);
+  });
+However I don't get 4 elements an 4 elements but I only get a total of 5 elements (and therefore this limit is a global limit), however, using populate I would expect to have a limit of 5 picture for each picture (so a local limit).
+[ { 
+    _id: 5196b332006b870000000008,
+    pictures:
+     [ { _id: 5196b33a006b870000000009 },
+       { _id: 5196b4b5006b87000000000a },
+       { _id: 5196b4c8006b87000000000b },
+       { _id: 5196b505006b87000000000d }]
+  },
+  { 
+    _id: 51975c2716798c0000000001,
+    pictures:
+     [ { _id: 51975c3216798c0000000002 } ],
+} ]
+Is there a way to do so, or is it a bug?2I
+(21e128669f7f48d33985a1d0115cc7d54ac98baf2013-08-08T17:08:21Z1506233:Å
+2013-05-26T01:47:34Z¬I'm seeing this same behavior on master but not on 3.6.11 where setting a limit gave back an empty array for every populated field in the result. So, it looks like limit is closer to working but, yes, this seems like a bug to me too.
+edit: adding .lean() to find exhibits the same behavior as 3.6.11.:~
+2013-06-05T09:13:14ZfJust ran into the same issue, where limit in populate is not working (limit is a global). I'm on 3.6.x:o
+2014-12-03T14:55:34ZWStill happening in version 3.8.8. After I update to 3.8.20 the issue was fixed. Thanks!…
+®
+2013-02-01T13:00:37Z"2013-04-09T00:06:35Z*‡	Hi.
+Setting an object on a document where that object is null gives me a
+Mongo 10145 Error LEFT_SUBFIELD only supports object: "ObjectName".
+Now i've enabled debug mode, and i can see that when mongoose does it's save() it doesn't tell mongo to set the whole object, but only the values inside the object. That explains the mongo error.
+I can resolve it by setting markModified on the whole object, but then i would need to do that for every object in my schema eg. in pre-save middleware.
+I've made a quick test to show it here:
+https://gist.github.com/4690893
+If the schema looks like this
+Schema({
+  meta: { amount: Number, enabled: Boolean, note: String }
+})
+Not using markModified gives this mongo set:
+{ '$set': { 'meta.amount': 1235, 'meta.enabled': true } }  // err if meta is null
+Using markModified gives this:
+{ '$set': { meta: { note: null, amount: 1235, enabled: true } } }
+I don't know if this is by design or it can somehow be solved.
+When i am trying isModified on the object it gives back true alright, so for now i just do
+if(doc.isModified('objectName')
+  doc.markModified('objectName')
+in pre-save middleware for every object in my schema.2H
+(c06383ce164a0623ddfc06df3e38e04b41da23802013-04-09T00:04:39Z166834ý	—
+2013-01-20T00:35:32Z"2013-03-04T19:36:14Z*ÿHi,
+I've been running into an issue where a change to one sub document gets dropped when also pulling another sub document depending on the order that these two changes are made. Please see the following minimal reproduction code:
+https://gist.github.com/4575777
+The debug output for both order cases is as follows.
+Correct case saving the following:
+var mySub = doc.subDocs[2];
+doc.subDocs.pull(doc.subDocs[1]);
+mySub.someValue = 5;
+
+results in
+Mongoose: docs.update({ _id: ObjectId("50fb28517c9e6e9c8a000002"), __v: 0 }) { '$inc': { __v: 1 }, '$set': { subDocs: [ { _id: ObjectId("50fb28517c9e6e9c8a000005"), someValue: 1 }, { _id: ObjectId("50fb28517c9e6e9c8a000003"), someValue: 5 } ] } } {} 
+
+Incorrect case saving the following:
+var mySub = doc.subDocs[2];
+mySub.someValue = 5;
+doc.subDocs.pull(doc.subDocs[1]);
+
+results in
+Mongoose: docs.update({ _id: ObjectId("50fb2973817ac5b18a000002"), __v: 0 }) { '$inc': { __v: 1 }, '$pull': { subDocs: { _id: { '$in': [ ObjectId("50fb2973817ac5b18a000004") ] } } } } {}
+
+I would greatly appreciate any help with this. Please let me know if I am overlooking something. Thanks!
+This is using mongoose 3.5.42H
+(6753ed14f868ce9e909e1ac3ec5f3c5d1a71f2332013-03-04T18:40:48Z166834Åä2013-11-04T12:51:30Z"2013-11-20T06:46:38Z*‰It seems that dates are being incorrectly by toObject():
+sambs@47caf74
+The problem seems to be in this line here:
+https://github.com/LearnBoost/mongoose/blob/master/lib/document.js#L1530
+... which treats Dates as objects and runs them through the minimize function.2@
+(12c4ee33fa19660f2db0a6a7a89558cb4890e2f52013-11-19T18:50:47Z:D
+2013-11-04T13:12:15Z,This could be fixed like this?
+sambs@7b9a12fÄ¤2013-04-19T19:55:38Z"2013-04-19T20:29:44Z*Ærelates to changes first made in 3.6.5 and a followup fix in 3.6.6
+https://groups.google.com/d/msg/mongoose-orm/uNNY42_E57Q/9-9KO8h7CSsJ
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+var assert = require('assert')
+
+console.log('\n===========');
+console.log('    mongoose version: %s', mongoose.version);
+console.log('========\n\n');
+
+var dbname = 'testing_morepopulationfallout-366';
+console.log('dbname: %s', dbname);
+mongoose.connect('localhost', dbname);
+mongoose.connection.on('error', function () {
+  console.error('connection error', arguments);
+});
+
+
+var articleSchema = new Schema({
+    body:          {type: String, default: '', trim: true}, // Article body
+    mediaAttach:   {type: Schema.ObjectId, ref : 'Media', index:true},  // Attached media file
+    author:        {type: Schema.ObjectId, ref : 'User', required:true, index: true},   // userid who posted the article
+});
+var Article = mongoose.model('Article', articleSchema);
+
+var UserSchema = new Schema({
+    firstName:       {type: String, required:true, trim:true},
+    lastName:        {type: String, required:true, trim:true},
+    nickName:        {type: String, required:true, trim:true, index:{unique:true}},
+    Avatar:           {type: Schema.ObjectId, ref: 'Media', index: true},  // Avatar image
+    });
+var User = mongoose.model('User', UserSchema);
+
+var MediaSchema = new Schema({
+    filename:     {type : String, required: true, index: {unique:true}},
+    originalName: {type: String, default:''},
+    size:         {type: Number, default : 0},
+   });
+var Media = mongoose.model('Media', MediaSchema);
+
+//
+
+
+
+mongoose.connection.on('open', function () {
+  var file1 = 'one';
+  var original1 = 'one-original';
+
+  Media.create({filename: file1, originalName: original1, size: 100}, function (err, media) {
+    if (err) return done(err);
+    console.log('created media', media);
+
+    var userFirst = 'aaron';
+    var userLast = 'heckmann';
+    var userNick = 'nick';
+
+    User.create({ firstName:userFirst, lastName:userLast, nickName: userNick, Avatar: media._id }, function (err, user) {
+      if (err) return done(err);
+      console.log('created user', user);
+
+      Article.create(
+          {body: 'body1', author: user._id}
+        , {body: 'body2', author: user._id, mediaAttach: media._id}
+        , {body: 'body3', author: user._id}, function (err, article1, article2, article3) {
+
+        if (err) return done(err);
+        console.log('created articles', article1, article2, article3);
+
+        mongoose.set('debug', true);
+
+        var query = Article.find()
+            .populate('author','firstName lastName nickName Avatar')
+            .populate('mediaAttach').exec(function (err, docs) {
+
+          if (err) return done(err);
+          console.log('found', docs);
+
+          var a1 = docs.filter(function(d){return 'body1' == d.body})[0];
+          var a2 = docs.filter(function(d){return 'body2' == d.body})[0];
+          var a3 = docs.filter(function(d){return 'body3' == d.body})[0];
+
+          // all have same author
+          assert.equal(a1.author.id, user.id);
+          assert.equal(a2.author.id, user.id);
+          assert.equal(a3.author.id, user.id);
+
+          try{
+            // fails
+            assert.equal(a2.mediaAttach.id, media.id);
+          }catch(err) { console.error(err);}
+
+          done();
+        })
+      })
+    })
+  });
+});
+
+function done (err) {
+  if (err) console.error(err.stack);
+  mongoose.connection.db.dropDatabase(function () {
+    mongoose.connection.close();
+  });
+}2H
+(0ab96d1645417e41a61c36ce7985f8ff3036c7362013-04-19T22:56:45Z166834è¢2013-04-18T23:51:15Z"2013-04-19T01:03:10Z*	see #14362H
+(a48c4054f38a7a11d968ffb44f7760abb9117ffa2013-04-19T22:56:10Z166834:|
+2013-04-19T08:30:32ZdGreat, thanks!
+I don't know how Mongoose is doing releases. So, when can I expect this to be on npm?:j
+2013-04-19T15:56:32ZRyesterday in 3.6.6 :)
+https://github.com/LearnBoost/mongoose/blob/3.6.x/History.md:ö
+
+2013-05-01T02:54:21ZÝ
+Unfortunately, this fix causes a terrible new regression. When a schema is defined which has a Mixed field and that Mixed field contains another document from the database, the Mixed field is now only storing the ObjectId of the other doc rather than a copy of it - which was behaviour that was consistent since at least 2.7.x.
+For example, if you use the following code and then in mongo you db.litters.find():
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/test');
+var Schema = mongoose.Schema;
+
+var Cat = mongoose.model('cats', new Schema({ name: String }));
+var Litter = mongoose.model('litters', new Schema({name: String, cats: {}}));
+
+var kitty = new Cat({ name: 'Zildjian' });
+kitty.save(function (err, meowness) {
+  if (err) console.log("error: "+err);
+  console.log('meow');
+  var litter = new Litter({name:'Crazy', cats:[meowness]});
+  litter.save(function (err) {
+    console.log('double meow');
+    process.exit(0);
+  });
+});
+With mongoose 2.7.x up to 3.6.5, you'll get:
+{
+  "name": "Crazy",
+  "cats": [
+    {
+      "__v": 0,
+      "name": "Zildjian",
+      "_id": ObjectId("518066eddf3dd10000000001")
+    }
+  ],
+  "_id": ObjectId("518066eddf3dd10000000002"),
+  "__v": 0
+}
+With mongoose >=3.6.6:
+{
+  "name": "Crazy",
+  "cats": [
+    ObjectId("518063c876d7e70000000001")
+  ],
+  "_id": ObjectId("518063c876d7e70000000002"),
+  "__v": 0
+}:Z
+2013-05-01T19:29:09ZB@jharlap I just opened #1471 to track this. Thanks for the detail.:y
+2013-05-01T23:18:57Za@jharlap potential fix is here. would you mind testing to confirm before I publish a new release?:&
+2013-05-02T17:03:35Zfixed in 3.6.9äÔ
+2013-02-27T12:44:59Z"2013-03-18T22:56:53Z*ðHere is the piece of code that behaves in a very unexpected way:
+var schemaData = { anarray: [{ type: ObjectId, ref: 'amodel' }] };
+console.log(schemaData);   // "{ anarray: [{ type: ObjectId, ref: 'amodel' }] }"
+
+var theSchema = new Schema(schemaData);
+console.log(schemaData);   // "{ anarray: [{ ref: 'amodel' }] }"
+So if I want to use the same schemaData object to create two different Schemas, the first creation will take place but since the schemaData object changed the second creation will fail with this error: "TypeError: Undefined type at ref
+Did you try nesting Schemas? You can only nest using refs or arrays."2H
+(cd1df0bf5753576aef0b275b9adb377f2d5f4c782013-03-18T22:56:17Z166834:=
+2013-02-27T12:47:26Z%By the way, I'm using mongoose v3.3.1:5
+2013-03-19T09:33:43ZCool to see it fixed, thanks!é$ñ	2012-12-30T21:14:53Z"2013-03-02T21:22:15Z*¯The following example creates three documents and attempts to force the update of "__v" by altering the "dummy" array.   It works in the first case with a "findOne/save" construct, but doesn't work for the atomic "update" and "findByIdAndUpdate" functions.
+Since it is possible for find/save constructs to be interleaved with atomic updates, it seems that it the "update" functions should also increment  "__v".
+This came up in the context of: http://stackoverflow.com/questions/14079693/mongoose-findbyidandupdate-or-update-and-increment-how-to-increment-v  An acceptable work around might be to allow "__v" to be incremented directly in an "update".
+#! /usr/bin/node
+
+var mongoose = require('mongoose');
+var async = require('async');
+mongoose.connect('mongodb://localhost/test');
+
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+
+var kittySchema = mongoose.Schema({
+    name: String,
+    dummy: Array
+});
+
+var Kitten = mongoose.model('Kitten', kittySchema);
+
+var fluffy1 = new Kitten({ name: 'fluffy1', dummy: [1] }),
+    fluffy2 = new Kitten({ name: 'fluffy2', dummy: [1] }),
+    fluffy3 = new Kitten({ name: 'fluffy3', dummy: [1] }),
+
+    fluffy2Id = null,
+    fluffy3Id = null;
+
+
+async.series([
+    function (openDone) {
+        db.once('open', function () {
+            openDone();
+        });
+    },
+    function (fluffy1SaveDone) {
+        fluffy1.save(function (err) {
+            if (err) {
+                console.log(err);
+            }
+            fluffy1SaveDone(err);
+        });
+    },
+
+    function (fluffy2SaveDone) {
+        fluffy2.save(function (err, kitty) {
+            if (err) {
+                console.log(err);
+            }
+            fluffy2Id = kitty._id;
+            fluffy2SaveDone(err);
+        });
+    },
+
+    function (fluffy3SaveDone) {
+        fluffy3.save(function (err, kitty) {
+            if (err) {
+                console.log(err);
+            }
+            fluffy3Id = kitty._id;
+            fluffy3SaveDone(err);
+        });
+    },
+
+    function (nonAtomicTestDone) {
+        Kitten.findOne({ name: /^fluffy1/ }, function (err, kitty) {
+            console.log(kitty);
+            kitty.dummy = [2];
+            kitty.save(function (err) {
+                nonAtomicTestDone(err);
+            });
+        });
+    },
+
+    function (updateTestDone) {
+        Kitten.update({_id: fluffy2Id}, {$set: {dummy: [2]}}, 
+            function (err) {
+                updateTestDone(err);
+            }
+        );
+    },
+
+    function (findByIdTestDone) {
+        Kitten.findByIdAndUpdate(fluffy3Id, {$set: {dummy: [2]}},
+            function (err) {
+                findByIdTestDone(err);
+            }
+        );
+    }],
+
+    function (err) {
+        if (err) {
+            console.log(err);
+        }
+        process.exit(0);
+    }
+);
+
+RESULT:
+{ "name" : "fluffy1", "_id" : ObjectId("50e09e0be3013e2811000001"), "dummy" : [ 2 ], "__v" : 1 }
+{ "name" : "fluffy2", "_id" : ObjectId("50e09e0be3013e2811000002"), "dummy" : [ 2 ], "__v" : 0 }
+{ "name" : "fluffy3", "_id" : ObjectId("50e09e0be3013e2811000003"), "dummy" : [ 2 ], "__v" : 0 }2H
+(fd0c9463c3683db604d33cc1dcb582d307d207f92013-02-27T17:34:08Z166834:Þ
+2013-01-08T23:23:21ZÅVersioning was implemented to mitigate the doc.save() use case and is working as designed (not Model.update etc). One could simply send the following instead:
+{$set: {dummy: [2]}, $inc: { __v: 1 }}:Ì
+2013-01-09T00:08:09Z³I'm not completely clear: Is the intent that "update" should never increment "__v" ?  For example this apparently does not increment __v either:
+Kitten.update({_id: fluffy2Id}, {$set: {dummy: [2]}, $inc: {__v: 1}},  function ()...);
+
+Not a big deal since this is a corner case, but I'd like to have clarity.:)
+2013-01-10T20:45:33Zlooks like a bug.:£
+2015-01-29T04:46:51ZŠHey,in my app.this issue is still stay.the mongoose version is 3.8.22.
+sorce code:
+Model schema
+Route excute
+As you can see, The schema is long and complicated.
+In past, I used update can not increment the '__v' value like this
+Dtree.update({"_id": id}, frontData, function(err){
+    if(err){
+        console.log('Error: updateDTree: DB failed to update due to ', err);
+        res.send({'success':false, 'err':err});
+    }else{
+                console.log('Info: updateDTree: DB updated successully dtree');
+                res.send({'success':true});
+    }
+});
+so i it and use .update({}, {, $inc: { __v: 1}}, callback) in my code.Thx for your help:¸
+2015-01-29T17:22:21ZŸHi @edwardstudy, can you clarify what you mean? I don't quite understand. Could you perhaps provide a standalone file or mocha test that reproduces your issue?›‹2013-11-25T10:46:13Z"2013-11-28T00:57:56Z* Hi,
+i've encountered a problem using enum validators for string types (from version 3.8, since version 3.6 everything was ok).
+When I use the enum validator the GLOBAL node object became polluted with an errorMessage property.
+Verisons:
+Mongoose 3.8
+node 0.10.18
+mongodb 2.0.0
+Running the following code will raise the problem.
+new require( 'mongoose' ).Schema( {
+  name: {
+    type: String,
+    enum: [ 'HERP', 'DERP' ]
+  }
+} );
+
+console.log( 'errorMessage', errorMessage );
+// will log "`{VALUE}` is not a valid enum value for path `{PATH}`."2@
+(503182c7ea128f324b0596e9fb19c6facffca6d22013-11-28T00:57:39Z:
+2013-11-25T11:03:38Z+1:’
+2013-11-27T21:56:09Zzhttps://github.com/LearnBoost/mongoose/blob/master/lib/schema/string.js#L85
+errorMessage should be declared in that scope.:R
+2013-11-28T00:26:43Z:good catch, wonder why mocha isn't complaining about that.Æ"ñ2013-08-15T15:18:35Z"2013-08-15T17:33:32Z*·The current implementation of Model.remove() in https://github.com/LearnBoost/mongoose/blob/master/lib/model.js is broken.
+It does not use the conditions parameter.
+Model.remove = function remove (conditions, callback) {
+  if ('function' === typeof conditions) {
+    callback = conditions;
+    conditions = {};
+  }
+
+  // get the mongodb collection object
+  var mq = new Query({}, {}, this, this.collection);
+
+  return mq.remove(callback);
+};
+Therefore when you have a User model and you call User.remove({_id:'uniqueId'}) it removes all documents from the collection.2H
+(2128c7a73f70dad364bce0d0ba02246d224dff0d2013-08-15T17:33:10Z166834:'
+2013-08-15T19:15:56Zfixed in 3.7.2.:\
+2013-08-15T19:16:55ZDThanks for reporting. Were you aware that 3.7 is an unstable branch?:u
+2013-08-15T19:21:12Z]Trying to get a sense for how bad this impacted you. Was this test data? Do you have backups?:×
+2013-08-15T19:31:17Z¾Thanks for fixing it. I didn't know that it was unstable branch. We are currently migrating from using 2.8, and I found this bug during the migration, so it hasn't affected any production data, fortunately, we have a very good test coverage. I suppose that 3.6 is the stable branch, so I will move the migration to it.:¸
+2013-08-15T19:45:57ZŸYes, 3.6 is the stable release. You'll note in the 3.7 release notes it is described as unstable. To help us communicate the unstable nature of odd minor version branches going forward, can you tell me which documentation you typically read before switching over? Thanks for helping out.:Ó
+2013-08-16T00:47:48ZºPerhaps it would be best to have an "unstable" branch and do all unstable work there? That way if someone installs from the master branch (not sure why they wouldn't use npm though) they will end up on stable version.
+That way people who know they want unstable will be forced to get it from the "unstable" branch.:<
+2013-08-16T00:48:20Z$Or even a branch named "development":‘
+2013-08-16T00:54:42ZøUsing the master branch for development is a very common approach in open source projects on github. I just added a note to the README for those curious about which branch is stable. Generally though, one should never make assumptions about branch stability before use. Unless stated otherwise, I always assume github branches to be unstable unless it is documented otherwise.:°
+2013-08-16T01:26:23Z—If the common approach allows unaware people to use an unstable branch that
+causes catastrophic data loss, I think it would be acceptable to break from
+the common approach.
+No matter how much you educate the users, if the default method of doing
+things can lead to something catastrophic, a reevaluation of the default
+method is in order. That is said from experience of creating software for
+end users, whether they are coders using a library or customers using
+packaged software.
+On Fri, Aug 16, 2013 at 7:54 AM, Aaron Heckmann notifications@github.comwrote:
+
+Using the master branch for development is a very common approach in open
+source projects on github. I just added a note to the README for those
+curious about which branch is stable. Generally though, one should never
+make assumptions about branch stability before use. Unless stated
+otherwise, I always assume github branches to be unstable unless it is
+documented otherwise.
+â€”
+Reply to this email directly or view it on GitHubhttps://github.com//issues/1649#issuecomment-22736789
+.:¨
+2013-08-16T03:09:31ZUnsure how common it would be for someone to install from master since we never say to do that anywhere (all listed install methods use npm afaik). Additionally, I can think of anytime I've done node development using the master branch of a dependency unless I found something specifically telling me to. I think including something on the README about master is about as good as it is going to get.:—
+2013-08-16T07:08:20ZI used npm to install 3.7 because I saw that it was the latest version available. Forgot to check whether it was stable or not.:¥
+2013-08-16T08:11:15ZŒInteresting, looking at npm info there is not any warning about 3.7 being unstable. npm install mongoose latest installs 3.6.17 like expected, but it might be nice if we can get npm info to be more informative. Thanks for helping us identify areas where we're unclear.:4
+2013-08-16T19:35:46Zadded the warning in ce20da7È…2013-08-27T23:24:22Z"2013-09-04T23:29:33Z*‚I have an application with users and groups. I declared users, groups and members ( a member is a reference to a user plus the role in the group) :
+var UserSchema = new Schema({
+_id: {type: String },
+name: { type: String, default: '' },
+email: { type: String, default: '' },
+username: { type: String, default: ''},
+hashed_password: { type: String, default: '' },
+salt: { type: String, default: '' },
+})
+var MemberSchema = new Schema({
+user: { type: String, ref: 'User' },
+role: { type: String, default: 'colaborator' },
+},{ _id : false });
+var GroupSchema = new Schema({
+_id : { type: String},
+name: { type: String, default: '' },
+description: { type: String, default: '' },
+created_at: { type: Date, default: Date.now},
+image: {type: String},
+members : [MemberSchema]
+});
+When I try to populate the user from the group.members by using:
+GroupSchema.statics = {
+getAll: function (callback) {
+this.find(null, "description name members -_id")
+.populate('members.user','username name -_id')
+.exec(callback);
+}
+};
+I end up with the full userSchema instead of just the username and name as expected:
+{
+"members": [
+{
+"user": {
+"salt": "a_salt",
+"hashed_password": "a_password",
+"username": "a_username2",
+"email": "a_mail@mail.com",
+"name": "a_name"
+},
+"role": "admin"
+},
+{
+"user": {
+"salt": "a_salt2",
+"hashed_password": "a_password2",
+"username": "a_username2",
+"email": "a_mail2@mail.com",
+"name": "a_name2"
+},
+"role": "admin"
+}
+],
+"image": "an_image.jpg",
+"description": "",
+"name": "a_groupname"
+},
+No _id but has all the other atributes.
+If I select only the atributes i need:
+GroupSchema.statics = {
+getAll: function (callback) {
+this.find(null, "description name members -_id")
+.populate('members.user','username name')
+.exec(callback);
+}
+};
+I end up with just those atributes and the _id:
+{
+"members": [
+{
+"user": {
+"_id": "an_id",
+"username": "a_username",
+"name": "a_name"
+},
+"role": "admin"
+},
+{
+"user": {
+"_id": "an_id2",
+"username": "a_username2",
+"name": "a_username2"
+},
+"role": "collaborator"
+}
+],
+"image": "an_image.jpg",
+"description": "",
+"name": "a_groupname"
+}
+Looks like It doesn't allow to select fields and remove the id at the same time.
+Thanks in advanced.2H
+(a830651eeef2fb0b7c525e488745ec69a91e453b2013-09-04T23:29:16Z166834:T
+2013-08-28T20:43:18Z<Thanks for the code. Which mongoose version are you running?:p
+2013-08-28T20:56:24ZXThanks for answering. Im using: 3.6.17 / 2013-08-13 ( copied from the history document).
