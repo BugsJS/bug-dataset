@@ -1,4 +1,4 @@
 ID;Test command;Coverage command;Node version;Pre-command;Post-command
 1;node_modules/.bin/_mocha --timeout 30000 -R json test/test.js;node_modules/.bin/istanbul cover --report json node_modules/.bin/_mocha -- --timeout 30000 -R json test/test.js;;;
-2;node_modules/.bin/_mocha --timeout 30000 -R json test/test.js --allow-root;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --timeout 30000 -R json test/test.js  --allow-root;;;
+2;node_modules/.bin/_mocha  --allow-root --timeout 30000 -R json test/test.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --allow-root --timeout 30000 -R json test/test.js;;;
 3;node_modules/.bin/_mocha --timeout 30000 -R json test/test.js;node_modules/.bin/istanbul cover --report json-summary node_modules/.bin/_mocha -- --timeout 30000 -R json test/test.js;;;
