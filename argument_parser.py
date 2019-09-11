@@ -24,7 +24,7 @@ def arg_parser():
 def get_projects():
     SCRIPTDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     projects_set = set()
-    projects_file = open(SCRIPTDIR+"/Projects.csv", "r")
+    projects_file = open(os.path.join(SCRIPTDIR, "Projects.csv"), "r")
     lines = projects_file.read().splitlines()
     for x in range(1, len(lines)):
         projects_set.add(lines[x].split(";")[0])

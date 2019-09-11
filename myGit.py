@@ -22,7 +22,7 @@ def checkout(param_dict):
 
 def get_project_repository(param_dict):
     SCRIPTDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
-    with open(SCRIPTDIR+"/Projects.csv", 'r') as infile:
+    with open(os.path.join(SCRIPTDIR, "Projects.csv"), 'r') as infile:
         reader = csv.DictReader(infile, delimiter=";")
         for row in reader:
             if str(param_dict["project"]) == str(row["Name"]):
