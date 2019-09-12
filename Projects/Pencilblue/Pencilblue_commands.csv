@@ -1,8 +1,8 @@
 ID;Test command;Coverage command;Node version;Pre-command;Post-command
-1;./node_modules/mocha/bin/_mocha -R json-cov --recursive;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive;4;;
-2;./node_modules/mocha/bin/_mocha -R json-cov --recursive;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive;0.11;;
+1;./node_modules/mocha/bin/_mocha -R json-cov --recursive ./test;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive ./test;6;;
+2;./node_modules/mocha/bin/_mocha -R json-cov --recursive ./test;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive ./test;6;;
 3;./node_modules/mocha/bin/_mocha -R json --recursive --exit;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json --recursive --exit;4;npm install mocha@5;
-4;./node_modules/mocha/bin/_mocha -R json-cov --recursive;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive;0.11;;
-5;./node_modules/mocha/bin/_mocha -R json-cov --recursive;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive;0.11;;
-6;./node_modules/mocha/bin/_mocha -R json-cov --recursive;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive;4;;
-7;./node_modules/mocha/bin/_mocha -R json-cov --recursive;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive;0.11;;
+4;./node_modules/mocha/bin/_mocha -R json-cov --recursive ./test;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive ./test;6;;
+5;./node_modules/mocha/bin/_mocha -R json-cov --recursive ./test;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive ./test;6;;
+6;./node_modules/mocha/bin/_mocha -R json-cov --recursive ./test;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive ./test;6;;
+7;./node_modules/mocha/bin/_mocha -R json-cov --recursive ./test;node_modules/.bin/istanbul cover --report json ./node_modules/mocha/bin/_mocha -- -R json-cov --recursive ./test;6;;
