@@ -71,6 +71,8 @@ def get_test_stat():
         test_stat_dump(test_stat)
         return test_stat
 
+def zip_test_results():
+    sp.call("zip -q test_results.json.zip test_results.json", shell=True)
 
 
 #================= get coverage statistics =======================
@@ -111,26 +113,6 @@ def get_cov_stat():
         pass
 
 
-# ====================== tests write into a file =================
-
-def write_test_names_into_file():
-    tests = set()
-    jsonfile = open("./test_results.json", 'r', encoding='utf-8')
-    lines = jsonfile.readlines()
-    for line in lines:
-        if line.count("\"fullTitle\""):
-            test = line.split("\": \"")[1].split("\",\n")[0]
-            tests.add(test)
-    jsonfile.close()
-
-    jsonfile = open("./tests.json", 'w')
-    jsonfile.write("[\n")
-    for x in range(len(tests)-1):
-        jsonfile.write("  \""+list(tests)[x]+"\",\n")
-    jsonfile.write("  \""+list(tests)[len(list(tests))-1]+"\"\n")
-    jsonfile.write("]")
-    jsonfile.close()
-
 
 # ======================= run commands =============
 
@@ -167,6 +149,7 @@ def test(param_dict):
     run_pre_and_post_command(get_command(param_dict, "Pre-command"))
     run_test_command(get_command(param_dict, "Test command"))
     get_test_stat()
+    zip_test_results()
 
     run_coverage_command(get_command(param_dict, "Coverage command"))
     get_cov_stat()
@@ -177,12 +160,12 @@ def per_test(param_dict):
     myGit.checkout(param_dict)
     set_node_version(get_command(param_dict, "Node version"))
 
-    run_pre_and_post_command(get_command(param_dict, "Pre-command"))
     run_npm_install()
+    run_pre_and_post_command(get_command(param_dict, "Pre-command"))
 
     run_test_command(get_command(param_dict, "Test command"))
     get_test_stat()
+    zip_test_results()
 
-    write_test_names_into_file()
     run_pertest_command(get_command(param_dict, "Coverage command"))
     run_pre_and_post_command(get_command(param_dict, "Post-command"))
