@@ -130,7 +130,7 @@ def run_coverage_command(coverage_command):
 
 
 def run_pertest_command(coverage_command):
-    sp.call("/work/pertest.js -t ./tests.json -r perTest_results.txt -c \""+str(coverage_command)+"\"", shell=True)
+    sp.call(str(coverage_command)+" /work/hook.js", shell=True)
 
 
 def run_npm_install():
