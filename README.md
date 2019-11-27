@@ -21,6 +21,11 @@ This benchmark includes bugs from the following 10 projects:
 
 The tests of the Node-redis project require ipv6 support.
 
+The per-test coverage data of the ESlint project is located in a separate storage due to its size (3GB).
+
+[ESlint coverage data](https://www.inf.u-szeged.hu/~pgyimesi/bugsjs/Eslint.7z)
+
+
 ### Files in the repository
 
 In the Projects directory, there is a subdirectory for each project which contains the following files:
