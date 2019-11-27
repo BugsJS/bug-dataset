@@ -1,10 +1,10 @@
-ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
-1;171;156;2;13;1020;981;1020;981;95;94;514;467
-2;175;171;2;2;1040;1001;1040;1001;95;94;530;482
-3;164;149;2;13;1020;977;1020;977;95;94;512;460
-4;164;162;2;0;978;922;978;922;91;86;397;357
-5;161;146;2;13;1012;969;1012;969;95;94;504;452
-6;162;147;2;13;1016;973;1016;973;95;94;508;456
-7;168;153;2;13;1022;979;1022;979;95;94;516;464
-8;171;156;2;13;1022;983;1022;983;95;94;518;470
-9;160;160;0;0;976;920;976;920;91;86;395;355
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage;Bug category;Bugfix patterns
+1;171;156;2;13;1020;981;1020;981;95;94;514;467;generic --> variable initialization --> missing variable initialization;CF-ADD,MC-DNP,MC-DNP,SQ-AMO,SQ-RMO
+2;175;171;2;2;1040;1001;1040;1001;95;94;530;482;incorrect feature implementation --> incorrect input validation --> unnecessary type check;IF-CC,IF-RMV
+3;164;149;2;13;1020;977;1020;977;95;94;512;460;incomplete feature implementation --> missing input validation --> missing null check;IF-APCJ
+4;164;162;2;0;978;922;978;922;91;86;397;357;incomplete feature implementation --> missing input validation --> missing null check;IF-CC
+5;161;146;2;13;1012;969;1012;969;95;94;504;452;generic --> missing type conversion;IF-APC
+6;162;147;2;13;1016;973;1016;973;95;94;508;456;incomplete feature implementation --> missing input validation;IF-APC,CF-CHG
+7;168;153;2;13;1022;979;1022;979;95;94;516;464;incomplete feature implementation --> missing input validation --> missing type check;CF-CHG
+8;171;156;2;13;1022;983;1022;983;95;94;518;470;incomplete feature implementation --> incomplete output message;IF-CC
+9;160;160;0;0;976;920;976;920;91;86;395;355;generic --> missing type conversion;SQ-RMO

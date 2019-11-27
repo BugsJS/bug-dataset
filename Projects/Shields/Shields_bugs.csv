@@ -1,5 +1,5 @@
-ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
-1;77;77;0;0;6467;1452;6553;1488;625;190;2211;227
-2;244;231;13;1;7253;1737;7373;1783;683;220;2556;307
-3;278;265;13;0;7167;1667;7275;1705;654;192;2542;323
-4;170;170;0;0;6566;1445;6652;1481;608;164;2253;234
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage;Bug category;Bugfix patterns
+1;77;77;0;0;6467;1452;6553;1488;625;190;2211;227;incorrect feature implementation --> incorrect data processing;AS-CE,CF-ADD
+2;244;231;13;1;7253;1737;7373;1783;683;220;2556;307;incorrect feature implementation --> incorrect data processing;AS-CE,AS-CE
+3;278;265;13;0;7167;1667;7275;1705;654;192;2542;323;perfective maintenance;MD-ADD,AS-CE
+4;170;170;0;0;6566;1445;6652;1481;608;164;2253;234;generic --> missing type conversion;AS-CE,AS-CE

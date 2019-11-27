@@ -1,13 +1,13 @@
-ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
-1;856;849;0;7;3998;3887;4249;4084;666;647;1944;1758
-2;726;696;16;14;3813;3599;1058;3782;620;589;1785;1549
-3;724;694;16;14;3801;3587;4046;3769;615;584;1783;1545
-4;794;782;7;5;3853;3696;4100;3887;652;620;1821;1628
-5;850;843;7;0;3985;3872;4235;4067;663;644;1945;1756
-6;785;768;9;8;3922;3717;4176;3909;647;610;1845;1628
-7;862;855;7;0;4001;3890;4253;4089;666;647;1948;1761
-8;818;811;7;0;3940;3827;4189;4022;656;637;1877;1692
-9;731;700;16;15;3825;3609;4076;3798;622;591;1795;1555
-10;689;661;14;14;3649;3425;3874;3588;573;541;1694;1458
-11;822;815;7;0;3939;3828;4187;4022;656;639;1877;1692
-12;875;868;7;0;3924;3817;4239;4078;342;337;1908;1727
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage;Bug category;Bugfix patterns
+1;856;849;0;7;3998;3887;4249;4084;666;647;1944;1758;generic --> variable initialization --> missing variable initialization;JS-Initialization
+2;726;696;16;14;3813;3599;1058;3782;620;589;1785;1549;incomplete feature implementation --> missing input validation --> missing handling of special characters;IF-APTC,IF-APTC,IF-APTC,IF-APTC
+3;724;694;16;14;3801;3587;4046;3769;615;584;1783;1545;incorrect feature implementation --> incorrect filepath;IF-CC,AS-CE,MC-DAP
+4;794;782;7;5;3853;3696;4100;3887;652;620;1821;1628;incorrect feature implementation --> incorrect data processing;JS-Return
+5;850;843;7;0;3985;3872;4235;4067;663;644;1945;1756;incorrect feature implementation --> incorrect filepath;AS-CE,JS-Return
+6;785;768;9;8;3922;3717;4176;3909;647;610;1845;1628;incomplete feature implementation --> incomplete data processing;MC-ADD
+7;862;855;7;0;4001;3890;4253;4089;666;647;1948;1761;incomplete feature implementation --> incomplete data processing;MC-DM
+8;818;811;7;0;3940;3827;4189;4022;656;637;1877;1692;incorrect feature implementation --> incorrect filepath;IF-RMV
+9;731;700;16;15;3825;3609;4076;3798;622;591;1795;1555;incorrect feature implementation --> incorrect data processing;MC-DM,MC-DM,IF-APCJ
+10;689;661;14;14;3649;3425;3874;3588;573;541;1694;1458;incorrect feature implementation --> incorrect data processing;MC-DAP
+11;822;815;7;0;3939;3828;4187;4022;656;639;1877;1692;incorrect feature implementation --> configuration processing;MC-DAP
+12;875;868;7;0;3924;3817;4239;4078;342;337;1908;1727;generic --> data processing;AS-CE,MC-DAP

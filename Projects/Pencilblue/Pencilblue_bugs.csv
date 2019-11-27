@@ -1,8 +1,8 @@
-ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
-1;598;596;0;2;11578;3728;11585;3729;2509;473;4847;691
-2;349;347;0;2;10650;2954;10655;2954;2227;274;4555;466
-3;807;802;0;5;11855;4182;11864;4185;2590;595;4978;953
-4;499;497;0;2;11090;3354;11097;3354;2325;400;4752;617
-5;326;324;0;2;10619;2937;10624;2937;2224;271;4539;457
-6;598;596;0;2;11583;3729;11590;3730;2509;473;4847;691
-7;266;264;0;2;10380;2838;10385;2838;2165;254;4425;420
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage;Bug category;Bugfix patterns
+1;598;596;0;2;11578;3728;11585;3729;2509;473;4847;691;incomplete feature implementation --> incomplete data processing;SQ-AFO
+2;349;347;0;2;10650;2954;10655;2954;2227;274;4555;466;incomplete feature implementation --> incomplete data processing;MD-ADD,AS-CE
+3;807;802;0;5;11855;4182;11864;4185;2590;595;4978;953;incorrect feature implementation --> incorrect data processing --> incorrect initialization;SQ-AFO,SQ-AFO,SQ-AFO
+4;499;497;0;2;11090;3354;11097;3354;2325;400;4752;617;incomplete feature implementation --> missing input validation --> missing type check;MC-DNP,MC-DNP,MC-DNP,MC-DNP,AS-CE,MD-ADD,MC-DNP
+5;326;324;0;2;10619;2937;10624;2937;2224;271;4539;457;incomplete feature implementation --> incomplete data processing;IF-APC
+6;598;596;0;2;11583;3729;11590;3730;2509;473;4847;691;incorrect feature implementation --> incorrect input validation;IF-CC,IF-CC,AS-CE,IF-CC,IF-CC,MC-DM
+7;266;264;0;2;10380;2838;10385;2838;2165;254;4425;420;generic --> typo;MC-DAP,MC-DNP,MD-ADD,AS-CE

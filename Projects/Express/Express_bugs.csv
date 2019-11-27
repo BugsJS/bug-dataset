@@ -1,28 +1,28 @@
-ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
-1;732;721;0;11;1719;1701;1803;1756;262;256;734;675
-2;617;609;0;8;1258;1237;1358;1314;228;222;640;590
-3;794;787;0;7;1789;1767;1874;1822;268;262;766;704
-4;575;564;0;11;1237;1217;1339;1295;230;224;635;587
-5;808;805;0;4;1850;1800;1888;1841;266;260;768;711
-6;462;453;0;9;1350;1241;1437;1300;218;191;618;514
-7;732;721;0;11;1719;1701;1803;1756;262;256;734;675
-8;708;697;0;11;1661;1643;1750;1702;255;249;715;656
-9;651;638;0;13;1519;1498;1601;1553;238;232;669;612
-10;827;827;0;0;1817;1817;1884;1860;266;266;764;719
-11;567;556;0;11;1231;1211;1334;1290;230;224;637;588
-12;795;788;0;7;1789;1767;1874;1822;268;262;768;706
-13;596;584;0;12;1449;1431;1545;1496;227;221;671;605
-14;714;703;0;11;1670;1652;1756;1708;255;249;716;657
-15;238;226;0;14;1166;810;1266;863;226;113;598;381
-16;712;701;0;11;1671;1653;1760;1712;256;250;722;663
-17;835;835;0;0;1834;1834;1901;1877;266;266;770;726
-18;792;785;0;7;1795;1773;1880;1828;269;263;769;707
-19;711;700;0;11;1669;1651;1758;1710;256;250;718;659
-20;834;834;0;0;1833;1833;1900;1876;266;266;770;726
-21;597;585;0;12;1424;1406;1514;1467;226;220;647;588
-22;475;461;0;14;1179;1077;1282;1154;228;200;602;513
-23;701;688;0;13;1657;1639;1746;1698;255;249;708;649
-24;739;728;0;11;1735;1717;1820;1777;265;259;740;683
-25;475;461;0;14;1179;1077;1282;1154;228;200;602;513
-26;722;711;0;11;1694;1676;1778;1730;257;251;726;668
-27;520;508;0;12;1404;1336;1494;1398;222;215;639;545
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage;Bug category;Bugfix patterns
+1;732;721;0;11;1719;1701;1803;1756;262;256;734;675;incorrect feature implementation --> incorrect data processing;MD-ADD
+2;617;609;0;8;1258;1237;1358;1314;228;222;640;590;incomplete feature implementation --> incomplete data processing;MC-DNP
+3;794;787;0;7;1789;1767;1874;1822;268;262;766;704;incomplete feature implementation --> incomplete data processing;CF-CHG
+4;575;564;0;11;1237;1217;1339;1295;230;224;635;587;incomplete feature implementation --> missing input validation;CF-CHG
+5;808;805;0;4;1850;1800;1888;1841;266;260;768;711;incorrect feature implementation --> incorrect filepath;IF-CC
+6;462;453;0;9;1350;1241;1437;1300;218;191;618;514;incorrect feature implementation --> incorrect data processing;SQ-AFO,IF-CC,MD-ADD,AS-CE,MC-DM,MC-DM
+7;732;721;0;11;1719;1701;1803;1756;262;256;734;675;incorrect feature implementation --> incorrect data processing;IF-APCJ,MD-ADD,MD-ADD,MD-ADD
+8;708;697;0;11;1661;1643;1750;1702;255;249;715;656;incorrect feature implementation --> incorrect input validation --> empty input parameters;IF-CC
+9;651;638;0;13;1519;1498;1601;1553;238;232;669;612;generic --> variable initialization --> incorrect variable initialization;AS-CE
+10;827;827;0;0;1817;1817;1884;1860;266;266;764;719;incorrect feature implementation --> incorrect input validation;IF-APCJ
+11;567;556;0;11;1231;1211;1334;1290;230;224;637;588;incorrect feature implementation --> incorrect data processing;IF-APC,SW-ARSB
+12;795;788;0;7;1789;1767;1874;1822;268;262;768;706;incorrect feature implementation --> incorrect data processing;CF-CHG
+13;596;584;0;12;1449;1431;1545;1496;227;221;671;605;incorrect feature implementation --> incorrect data processing;SQ-AROB,IF-CC,IF-CC
+14;714;703;0;11;1670;1652;1756;1708;255;249;716;657;incorrect feature implementation --> incorrect input validation --> empty input parameters;
+15;238;226;0;14;1166;810;1266;863;226;113;598;381;incomplete feature implementation --> incomplete data processing;MC-DAP
+16;712;701;0;11;1671;1653;1760;1712;256;250;722;663;incorrect feature implementation --> incorrect data processing;MC-DAP,MC-DAP
+17;835;835;0;0;1834;1834;1901;1877;266;266;770;726;incomplete feature implementation --> error handling;
+18;792;785;0;7;1795;1773;1880;1828;269;263;769;707;incorrect feature implementation --> incorrect data processing;IF-CC
+19;711;700;0;11;1669;1651;1758;1710;256;250;718;659;incorrect feature implementation --> incorrect data processing;IF-CC
+20;834;834;0;0;1833;1833;1900;1876;266;266;770;726;incomplete feature implementation --> error handling;IF-CC,IF-APCJ,IF-APC
+21;597;585;0;12;1424;1406;1514;1467;226;220;647;588;incomplete feature implementation --> incomplete data processing;MD-ADD
+22;475;461;0;14;1179;1077;1282;1154;228;200;602;513;incorrect feature implementation --> incorrect input validation --> incorrect handling of special characters;
+23;701;688;0;13;1657;1639;1746;1698;255;249;708;649;incomplete feature implementation --> missing input validation;
+24;739;728;0;11;1735;1717;1820;1777;265;259;740;683;incomplete feature implementation --> error handling;MD-ADD
+25;475;461;0;14;1179;1077;1282;1154;228;200;602;513;incomplete feature implementation --> missing input validation --> missing type check;IF-CC
+26;722;711;0;11;1694;1676;1778;1730;257;251;726;668;incomplete feature implementation --> missing input validation --> missing handling of special characters;AS-CE
+27;520;508;0;12;1404;1336;1494;1398;222;215;639;545;incomplete feature implementation --> error handling --> callbacks;IF-CC,IF-APCJ,AS-CE,IF-APC

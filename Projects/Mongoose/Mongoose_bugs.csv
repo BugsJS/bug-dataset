@@ -1,30 +1,30 @@
-ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage
-1;823;821;0;2;4147;3888;4349;4036;571;537;2614;2304
-2;833;831;0;2;4201;3933;4404;4082;576;541;2669;2350
-3;840;838;0;2;4226;3968;4429;4117;579;545;2686;2373
-4;880;877;0;3;4367;3737;4575;3862;585;503;2811;2193
-5;882;880;0;2;4374;3749;4583;3875;587;506;2820;2203
-6;883;881;0;2;4377;3750;4586;3876;587;506;2824;2206
-7;884;882;0;2;4381;3753;4590;3879;589;507;2824;2206
-8;886;885;0;1;4381;3754;4590;3880;589;507;2828;2211
-9;889;888;0;1;4389;3762;4599;3888;592;510;2836;2219
-10;890;888;0;2;4389;3762;4599;3888;592;510;2838;2221
-11;892;891;0;1;4393;3762;4604;3888;592;510;2840;2221
-12;926;926;0;0;4475;4194;4692;4357;607;572;2895;2557
-13;935;935;0;0;4501;4221;4718;4385;606;571;2914;2577
-14;937;937;0;0;4502;4222;4719;4386;606;571;2915;2578
-15;943;943;0;0;4509;4229;4725;4392;606;571;2917;2580
-16;946;946;0;0;4528;4248;4745;4412;606;571;2917;2580
-17;951;951;0;0;4530;4254;4746;4417;606;573;2932;2598
-18;958;958;0;0;4391;4038;4595;4191;568;529;2867;2495
-19;957;957;0;0;4391;4038;4595;4191;568;529;2865;2493
-20;1003;1003;0;0;4476;4149;4677;4303;569;537;2899;2553
-21;1008;1008;0;0;4476;4152;4677;4306;569;537;2903;2561
-22;986;986;0;0;4432;4081;4633;4234;570;531;2880;2514
-23;1016;1016;0;0;4506;4190;4710;4347;569;539;2924;2584
-24;1051;1051;0;0;4591;4271;4797;4430;576;546;2976;2633
-25;1060;1060;0;0;4615;4295;4824;4457;578;549;3006;2657
-26;1061;1061;0;0;4619;4299;4828;4461;578;549;3002;2653
-27;1061;1061;0;0;4619;4299;4828;4461;578;549;3002;2653
-28;1120;1120;0;0;4726;4392;4940;4557;590;558;3090;2728
-29;1208;1208;0;0;5260;4807;5480;4972;668;619;3508;3011
+ID;Number of tests;Number of passed tests;Number of pending tests;Number of failed tests;Number of lines;Number of total lines coverage;Number of statements;Number of total statements coverage;Number of functions;Number of total functions coverage;Number of branches;Number of total branches coverage;Bug category;Bugfix patterns
+1;823;821;0;2;4147;3888;4349;4036;571;537;2614;2304;incomplete feature implementation --> incomplete data processing;
+2;833;831;0;2;4201;3933;4404;4082;576;541;2669;2350;incomplete feature implementation --> error handling;AS-CE,IF-RMV
+3;840;838;0;2;4226;3968;4429;4117;579;545;2686;2373;incorrect feature implementation --> incorrect data processing;IF-RMV,IF-CC
+4;880;877;0;3;4367;3737;4575;3862;585;503;2811;2193;incorrect feature implementation --> incorrect data processing;MD-ADD,AS-CE,MC-DNP,MC-DNP
+5;882;880;0;2;4374;3749;4583;3875;587;506;2820;2203;incorrect feature implementation --> incorrect data processing --> incorrect initialization;
+6;883;881;0;2;4377;3750;4586;3876;587;506;2824;2206;incorrect feature implementation --> incorrect data processing --> incorrect initialization;AS-CE,AS-CE
+7;884;882;0;2;4381;3753;4590;3879;589;507;2824;2206;incomplete feature implementation --> incomplete data processing;IF-CHG,MC-DNP,MD-CHG,AS-CE,IF-APC
+8;886;885;0;1;4381;3754;4590;3880;589;507;2828;2211;generic --> return statement --> missing return statement;
+9;889;888;0;1;4389;3762;4599;3888;592;510;2836;2219;generic --> variable initialization --> missing variable initialization;JS-Return
+10;890;888;0;2;4389;3762;4599;3888;592;510;2838;2221;incomplete feature implementation --> incomplete data processing;MC-DNP,MC-DNP
+11;892;891;0;1;4393;3762;4604;3888;592;510;2840;2221;incomplete feature implementation --> missing input validation;IF-CC
+12;926;926;0;0;4475;4194;4692;4357;607;572;2895;2557;incorrect feature implementation --> incorrect data processing --> incorrect initialization;AS-CE,MC-DNP,AS-CE
+13;935;935;0;0;4501;4221;4718;4385;606;571;2914;2577;incomplete feature implementation --> incomplete data processing;IF-CC,AS-CE,MC-DAP,MC-DAP
+14;937;937;0;0;4502;4222;4719;4386;606;571;2915;2578;incorrect feature implementation --> incorrect data processing;SQ-RMO,SQ-AMO
+15;943;943;0;0;4509;4229;4725;4392;606;571;2917;2580;generic --> variable initialization --> missing variable initialization;CF-CHG
+16;946;946;0;0;4528;4248;4745;4412;606;571;2917;2580;incorrect feature implementation --> incorrect data processing;IF-CC
+17;951;951;0;0;4530;4254;4746;4417;606;573;2932;2598;incomplete feature implementation --> missing input validation;IF-CC
+18;958;958;0;0;4391;4038;4595;4191;568;529;2867;2495;incorrect feature implementation --> incorrect data processing;AS-CE,IF-APC
+19;957;957;0;0;4391;4038;4595;4191;568;529;2865;2493;incomplete feature implementation --> missing input validation --> missing null check;IF-CC
+20;1003;1003;0;0;4476;4149;4677;4303;569;537;2899;2553;incorrect feature implementation --> incorrect input validation;IF-CC
+21;1008;1008;0;0;4476;4152;4677;4306;569;537;2903;2561;incomplete feature implementation --> incomplete data processing;
+22;986;986;0;0;4432;4081;4633;4234;570;531;2880;2514;incorrect feature implementation --> incorrect data processing;MC-DAP
+23;1016;1016;0;0;4506;4190;4710;4347;569;539;2924;2584;incorrect feature implementation --> incorrect input validation;AS-CE
+24;1051;1051;0;0;4591;4271;4797;4430;576;546;2976;2633;incomplete feature implementation --> incomplete data processing;MD-ADD
+25;1060;1060;0;0;4615;4295;4824;4457;578;549;3006;2657;incorrect feature implementation --> incorrect data processing;IF-CC
+26;1061;1061;0;0;4619;4299;4828;4461;578;549;3002;2653;generic --> variable initialization --> missing variable initialization;JS-Declaration
+27;1061;1061;0;0;4619;4299;4828;4461;578;549;3002;2653;incomplete feature implementation --> incomplete data processing;MD-ADD
+28;1120;1120;0;0;4726;4392;4940;4557;590;558;3090;2728;incomplete feature implementation --> incomplete data processing;SW-ARSB
+29;1208;1208;0;0;5260;4807;5480;4972;668;619;3508;3011;incomplete feature implementation --> error handling;MC-DNP,MC-DNP,IF-CC
